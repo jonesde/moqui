@@ -96,6 +96,7 @@ class EntityFind extends Specification {
         [exampleId: "TEST1", exampleId_op: "contains"] | "TEST1"
         [exampleId: "TEST1", exampleId_op: "equals", exampleTypeEnumId_op: "empty"] | "TEST1"
         [exampleId: "TEST1", exampleId_op: "equals", description_op: "empty"] | "TEST1"
+        [exampleId: "TEST1", exampleId_op: "equals", exampleDate_from: "", exampleDate_thru: ""] | "TEST1"
         [exampleId: "TEST1", exampleId_op: "equals", exampleDate_from: timestamp, exampleDate_thru: timestamp] | null
         [exampleId: "TEST1", exampleId_op: "equals", exampleDate_from: timestamp, exampleDate_thru: timestamp + 1] | "TEST1"
         [exampleId: "TEST1", exampleId_op: "equals", exampleName_not: "Y", exampleName_op: "equals", exampleName: ""] | "TEST1"
