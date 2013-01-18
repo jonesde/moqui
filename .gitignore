@@ -13,3 +13,8 @@ runtime/mantle/
 runtime/tmp/
 execwartmp/
 *.iml
+/nbproject/
+.classpath
+.project
+*.eml
+nb-build.xml
