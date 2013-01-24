@@ -23,7 +23,7 @@ This Work includes contributions authored by David E. Jones, not as a
     <system systemId="http://moqui.org/xsd/moqui-conf-1.2.xsd" uri="moqui-conf-1.2.xsd"/>
 
     <system systemId="http://moqui.org/xsd/entity-eca-1.2.xsd" uri="entity-eca-1.2.xsd"/>
-    <system systemId="http://moqui.org/xsd/entity-model-1.2.xsd" uri="entity-model-1.2.xsd"/>
+    <system systemId="http://moqui.org/xsd/entity-definition-1.2.xsd" uri="entity-definition-1.2.xsd"/>
 
     <system systemId="http://moqui.org/xsd/service-definition-1.2.xsd" uri="service-definition-1.2.xsd"/>
     <system systemId="http://moqui.org/xsd/service-eca-1.2.xsd" uri="service-eca-1.2.xsd"/>
