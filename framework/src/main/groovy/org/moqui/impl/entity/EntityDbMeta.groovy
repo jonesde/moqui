@@ -272,7 +272,9 @@ class EntityDbMeta {
                 if (relatedEntityName.contains("."))
                     relatedEntityName = relatedEntityName.substring(relatedEntityName.lastIndexOf(".")+1)
                 if (commonChars > 0) {
-                    indexName.append(ed.entityName).append(title.substring(commonChars)).append(relatedEntityName)
+                    indexName.append(ed.entityName)
+                    for (Character cc in title.substring(0, commonChars)) if (cc.isUpperCase()) indexName.append(cc)
+                    indexName.append(title.substring(commonChars)).append(relatedEntityName)
                 } else {
                     indexName.append(ed.entityName).append(title).append(relatedEntityName)
                 }
@@ -393,7 +395,9 @@ class EntityDbMeta {
                 if (relatedEntityName.contains("."))
                     relatedEntityName = relatedEntityName.substring(relatedEntityName.lastIndexOf(".")+1)
                 if (commonChars > 0) {
-                    constraintName.append(ed.entityName).append(title.substring(commonChars)).append(relatedEntityName)
+                    constraintName.append(ed.entityName)
+                    for (Character cc in title.substring(0, commonChars)) if (cc.isUpperCase()) constraintName.append(cc)
+                    constraintName.append(title.substring(commonChars)).append(relatedEntityName)
                 } else {
                     constraintName.append(ed.entityName).append(title).append(relatedEntityName)
                 }
