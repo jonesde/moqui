@@ -52,6 +52,7 @@ class ScreenForm {
     protected XmlAction rowActions = null
 
     protected Map<String, Node> dbFormNodeById = null
+    protected List<Node> nonReferencedFieldList = null
 
     ScreenForm(ExecutionContextFactoryImpl ecfi, ScreenDefinition sd, Node baseFormNode, String location) {
         this.ecfi = ecfi
@@ -158,12 +159,14 @@ class ScreenForm {
         mergeFieldNode(newFormNode, newFieldNode, false)
          */
 
+        /* don't do this any more, now handled with the fields-not-referenced element:
         // check form-single.field-layout and add any fields that are missing
         if (newFormNode."field-layout") for (Node fieldNode in newFormNode."field") {
             Node fieldLayoutNode = newFormNode."field-layout"[0]
             if (!fieldLayoutNode.depthFirst().find({ it.name() == "field-ref" && it."@name" == fieldNode."@name" }))
                 addFieldToFieldLayout(newFormNode, fieldNode)
         }
+        */
 
         if (logger.traceEnabled) logger.trace("Form [${location}] resulted in expanded def: " + FtlNodeWrapper.wrapNode(newFormNode).toString())
 
@@ -171,6 +174,20 @@ class ScreenForm {
         if (newFormNode."row-actions") {
             rowActions = new XmlAction(ecfi, (Node) newFormNode."row-actions"[0], location + ".row_actions")
         }
+    }
+
+    List<Node> getFieldLayoutNonReferencedFieldList() {
+        if (nonReferencedFieldList != null) return nonReferencedFieldList
+        List<Node> fieldList = []
+
+        if (getFormNode()."field-layout") for (Node fieldNode in getFormNode()."field") {
+            Node fieldLayoutNode = getFormNode()."field-layout"[0]
+            if (!fieldLayoutNode.depthFirst().find({ it.name() == "field-ref" && it."@name" == fieldNode."@name" }))
+                fieldList.add(fieldNode)
+        }
+
+        nonReferencedFieldList = fieldList
+        return fieldList
     }
 
     List<Node> getDbFormNodeList() {

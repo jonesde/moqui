@@ -9,7 +9,9 @@ Moqui Framework release 1.2.1 is a minor bug fix release... TODO
 
 New Features:
 
--
+- Updated gradle build files to work with Gradle 1.3
+- Added XML Form fields-not-referenced element to specify where to render
+  the fields not explicitly referenced under the field-layout element
 
 Bug Fixes:
 

@@ -351,6 +351,9 @@ ${sri.renderIncludeScreen(.node["@location"], .node["@share-scope"]?if_exists)}
                     <#else>
                         <@formSingleSubField fieldNode/>
                     </#if>
+                <#elseif layoutNode?node_name == "fields-not-referenced">
+                    <#assign nonReferencedFieldList = sri.getFtlFormFieldLayoutNonReferencedFieldList(.node["@name"])>
+                    <#list nonReferencedFieldList as nonReferencedField><@formSingleSubField nonReferencedField/></#list>
                 <#elseif layoutNode?node_name == "field-row">
                   <#if collapsibleOpened>
                     <#assign collapsibleOpened = false>
@@ -360,17 +363,22 @@ ${sri.renderIncludeScreen(.node["@location"], .node["@share-scope"]?if_exists)}
                   </#if>
                     <div class="field-row ui-helper-clearfix">
                     <#assign inFieldRow = true>
-                    <#list layoutNode["field-ref"] as rowFieldRefNode>
-                        <div class="field-row-item">
-                            <#assign fieldRef = rowFieldRefNode["@name"]>
-                            <#assign fieldNode = "invalid">
-                            <#list formNode["field"] as fn><#if fn["@name"] == fieldRef><#assign fieldNode = fn><#break></#if></#list>
-                            <#if fieldNode == "invalid">
-                                <div>Error: could not find field with name [${fieldRef}] referred to in a field-ref.@name attribute.</div>
-                            <#else>
-                                <@formSingleSubField fieldNode/>
-                            </#if>
-                        </div>
+                    <#list layoutNode?children as rowChildNode>
+                        <#if rowChildNode?node_name == "field-ref">
+                            <div class="field-row-item">
+                                <#assign fieldRef = rowChildNode["@name"]>
+                                <#assign fieldNode = "invalid">
+                                <#list formNode["field"] as fn><#if fn["@name"] == fieldRef><#assign fieldNode = fn><#break></#if></#list>
+                                <#if fieldNode == "invalid">
+                                    <div>Error: could not find field with name [${fieldRef}] referred to in a field-ref.@name attribute.</div>
+                                <#else>
+                                    <@formSingleSubField fieldNode/>
+                                </#if>
+                            </div>
+                        <#elseif rowChildNode?node_name == "fields-not-referenced">
+                            <#assign nonReferencedFieldList = sri.getFtlFormFieldLayoutNonReferencedFieldList(.node["@name"])>
+                            <#list nonReferencedFieldList as nonReferencedField><@formSingleSubField nonReferencedField/></#list>
+                        </#if>
                     </#list>
                     <#assign inFieldRow = false>
                     </div>
@@ -386,19 +394,27 @@ ${sri.renderIncludeScreen(.node["@location"], .node["@share-scope"]?if_exists)}
                                 <#assign fieldNode = "invalid">
                                 <#list formNode["field"] as fn><#if fn["@name"] == fieldRef><#assign fieldNode = fn><#break></#if></#list>
                                 <@formSingleSubField fieldNode/>
+                            <#elseif layoutNode?node_name == "fields-not-referenced">
+                                <#assign nonReferencedFieldList = sri.getFtlFormFieldLayoutNonReferencedFieldList(.node["@name"])>
+                                <#list nonReferencedFieldList as nonReferencedField><@formSingleSubField nonReferencedField/></#list>
                             <#elseif groupNode?node_name == "field-row">
                                 <div class="field-row ui-helper-clearfix">
-                                <#list groupNode["field-ref"] as rowFieldRefNode>
-                                    <div class="field-row-item">
-                                        <#assign fieldRef = rowFieldRefNode["@name"]>
-                                        <#assign fieldNode = "invalid">
-                                        <#list formNode["field"] as fn><#if fn["@name"] == fieldRef><#assign fieldNode = fn><#break></#if></#list>
-                                        <#if fieldNode == "invalid">
-                                            <div>Error: could not find field with name [${fieldRef}] referred to in a field-ref.@name attribute.</div>
-                                        <#else>
-                                            <@formSingleSubField fieldNode/>
-                                        </#if>
-                                    </div>
+                                <#list layoutNode?children as rowChildNode>
+                                    <#if rowChildNode?node_name == "field-ref">
+                                        <div class="field-row-item">
+                                            <#assign fieldRef = rowChildNode["@name"]>
+                                            <#assign fieldNode = "invalid">
+                                            <#list formNode["field"] as fn><#if fn["@name"] == fieldRef><#assign fieldNode = fn><#break></#if></#list>
+                                            <#if fieldNode == "invalid">
+                                                <div>Error: could not find field with name [${fieldRef}] referred to in a field-ref.@name attribute.</div>
+                                            <#else>
+                                                <@formSingleSubField fieldNode/>
+                                            </#if>
+                                        </div>
+                                    <#elseif rowChildNode?node_name == "fields-not-referenced">
+                                        <#assign nonReferencedFieldList = sri.getFtlFormFieldLayoutNonReferencedFieldList(.node["@name"])>
+                                        <#list nonReferencedFieldList as nonReferencedField><@formSingleSubField nonReferencedField/></#list>
+                                    </#if>
                                 </#list>
                                 </div>
                             </#if>

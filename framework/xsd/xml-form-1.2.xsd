@@ -154,6 +154,7 @@ This Work includes contributions authored by David E. Jones, not as a
                 <xs:element ref="field-group"/>
                 <xs:element ref="field-row"/>
                 <xs:element ref="field-ref"/>
+                <xs:element ref="fields-not-referenced"/>
             </xs:choice>
             <xs:attribute name="id" type="xs:string"/>
             <xs:attribute name="collapsible" type="boolean"/>
@@ -163,6 +164,7 @@ This Work includes contributions authored by David E. Jones, not as a
         <xs:complexType>
             <xs:choice minOccurs="0" maxOccurs="unbounded">
                 <xs:element ref="field-ref"/>
+                <xs:element ref="fields-not-referenced"/>
                 <xs:element ref="field-row"/>
             </xs:choice>
             <xs:attribute name="title" type="xs:string" use="required"/>
@@ -184,6 +186,10 @@ This Work includes contributions authored by David E. Jones, not as a
     </xs:element>
     <xs:element name="field-ref">
         <xs:complexType><xs:attribute name="name" type="xs:string" use="required"/></xs:complexType>
+    </xs:element>
+    <xs:element name="fields-not-referenced">
+        <xs:annotation><xs:documentation>Fields not explicitly referenced will be inserted where this element is. If
+            this element is left out the non-referenced fields will not be displayed.</xs:documentation></xs:annotation>
     </xs:element>
 
     <!-- ================== Standalone Fields ==================== -->
