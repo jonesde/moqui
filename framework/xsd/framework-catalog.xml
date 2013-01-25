@@ -13,23 +13,19 @@ This Work includes contributions authored by David E. Jones, not as a
 "work for hire", who hereby disclaims any copyright to the same.
 -->
 
-<!--
-  Comment the DTD declaration to avoid looking for it on the web.
-  Alternatively we can place a copy of the DTD locally and refer to it.
--->
 <catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
   <!-- <public publicId="-//W3C//DTD SVG 1.0//EN" uri="svg10.dtd"/> -->
 
-    <system systemId="http://moqui.org/xsd/moqui-conf-1.2.xsd" uri="moqui-conf-1.2.xsd"/>
-
-    <system systemId="http://moqui.org/xsd/entity-eca-1.2.xsd" uri="entity-eca-1.2.xsd"/>
+    <system systemId="http://moqui.org/xsd/email-eca-1.2.xsd" uri="email-eca-1.2.xsd"/>
     <system systemId="http://moqui.org/xsd/entity-definition-1.2.xsd" uri="entity-definition-1.2.xsd"/>
+    <system systemId="http://moqui.org/xsd/entity-eca-1.2.xsd" uri="entity-eca-1.2.xsd"/>
+
+    <system systemId="http://moqui.org/xsd/moqui-conf-1.2.xsd" uri="moqui-conf-1.2.xsd"/>
 
     <system systemId="http://moqui.org/xsd/service-definition-1.2.xsd" uri="service-definition-1.2.xsd"/>
     <system systemId="http://moqui.org/xsd/service-eca-1.2.xsd" uri="service-eca-1.2.xsd"/>
-    <system systemId="http://moqui.org/xsd/service-mca-1.2.xsd" uri="service-mca-1.2.xsd"/>
 
-    <system systemId="http://moqui.org/xsd/xml-screen-1.2.xsd" uri="xml-screen-1.2.xsd"/>
-    <system systemId="http://moqui.org/xsd/xml-form-1.2.xsd" uri="xml-form-1.2.xsd"/>
     <system systemId="http://moqui.org/xsd/xml-actions-1.2.xsd" uri="xml-actions-1.2.xsd"/>
+    <system systemId="http://moqui.org/xsd/xml-form-1.2.xsd" uri="xml-form-1.2.xsd"/>
+    <system systemId="http://moqui.org/xsd/xml-screen-1.2.xsd" uri="xml-screen-1.2.xsd"/>
 </catalog>
