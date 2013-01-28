@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This Work is in the public domain and is provided on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied,
+including, without limitation, any warranties or conditions of TITLE,
+NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE.
+You are solely responsible for determining the appropriateness of using
+this Work and assume any risks associated with your use of this Work.
+
+This Work includes contributions authored by David E. Jones, not as a
+"work for hire", who hereby disclaims any copyright to the same.
+-->
+<entity-facade-xml type="seed">
+    <!-- the subscreen -->
+    <moqui.screen.SubscreensItem screenLocation="component://webroot/screen/webroot/apps.xml"
+        subscreenName="sssTemplate" userGroupId="ALL_USERS" subscreenLocation="component://sssTemplate/screen/SSSTemplateHome.xml"
+        menuTitle="SSS Template" menuIndex="1" menuInclude="Y"/>
+    
+    <moqui.security.ArtifactGroup artifactGroupId="SSSTEMPLATE_APP" description="Expense App (via root screen)"/>
+    <moqui.security.ArtifactGroupMember artifactGroupId="SSSTEMPLATE_APP" artifactName="component://sssTemplate/screen/SSSTemplateHome.xml"
+                                        artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+
+    <!-- Setup full permissions for the ADMIN user group -->
+    <moqui.security.ArtifactAuthz artifactAuthzId="SSSTEMPLATE_AUTHZ_1" userGroupId="ADMIN" artifactGroupId="SSSTEMPLATE_APP"
+                                  authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+
+
+</entity-facade-xml>
