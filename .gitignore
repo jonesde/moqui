@@ -18,3 +18,5 @@ execwartmp/
 .project
 *.eml
 nb-build.xml
+catalog.xml
+private/
