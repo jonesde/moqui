@@ -589,6 +589,7 @@ This Work includes contributions authored by David E. Jones, not as a
             <xs:attribute name="confirmation" type="xs:string"><xs:annotation><xs:documentation>
                 If there is a message here it will show in a confirmation box when the button is clicked on.
             </xs:documentation></xs:annotation></xs:attribute>
+            <xs:attribute name="icon" type="xs:string"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="text-line" substitutionGroup="SubFields">

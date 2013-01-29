@@ -12,3 +12,11 @@ runtime/log/
 runtime/mantle/
 runtime/tmp/
 execwartmp/
+*.iml
+/nbproject/
+.classpath
+.project
+*.eml
+nb-build.xml
+catalog.xml
+private/
