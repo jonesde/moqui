@@ -102,7 +102,7 @@ class EntityDataFeed {
             }
 
             if (dataDocumentIdSet) {
-                logger.warn("============== DataFeed registering entity [${ev.getEntityName()}] value: ${ev}")
+                // logger.warn("============== DataFeed registering entity [${ev.getEntityName()}] value: ${ev}")
                 // NOTE: comment out this line to disable real-time push DataFeed in one simple place:
                 getDataFeedXaResource().addValueToFeed(ev, dataDocumentIdSet)
             }
@@ -124,7 +124,7 @@ class EntityDataFeed {
         // only rebuild if the cache is empty, most entities won't have any entry in it and don't want a rebuild for each one
         if (entityInfoList == null) efi.dataFeedEntityInfo.clearExpired()
         if (efi.dataFeedEntityInfo.size() == 0) {
-            logger.warn("=============== rebuilding DocumentEntityInfo for [${fullEntityName}], cache size: ${efi.dataFeedEntityInfo.size()}")
+            // logger.warn("=============== rebuilding DocumentEntityInfo for [${fullEntityName}], cache size: ${efi.dataFeedEntityInfo.size()}")
 
             // rebuild from the DB for this and other entities, ie have to do it for all DataFeeds and
             //     DataDocuments because we can't query it by entityName
@@ -149,7 +149,7 @@ class EntityDataFeed {
                     if (newEntityInfoList == null) {
                         newEntityInfoList = []
                         efi.dataFeedEntityInfo.put(entityInfoMapEntry.getKey(), newEntityInfoList)
-                        logger.warn("============= added efi.dataFeedEntityInfo entry for entity [${entityInfoMapEntry.getKey()}]")
+                        // logger.warn("============= added efi.dataFeedEntityInfo entry for entity [${entityInfoMapEntry.getKey()}]")
                     }
                     newEntityInfoList.add(entityInfoMapEntry.getValue())
                 }

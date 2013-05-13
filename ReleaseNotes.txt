@@ -46,6 +46,12 @@ New Features:
   which produce a sort of view entity (built on the fly with
   EntityDynamicView); the actual data documents are nested Maps and Lists
   produced by the EntityFacade.getDataDocuments() method
+- Added Entity Data Feed feature configured by DataFeed* entities; a feed
+  is associated with one or more DataDocuments that are pushed to a service
+  or pulled through a method call; the first part implemented is a
+  real-time push triggered by entity changes for entities that are part of
+  associated DataDocuments and the document(s) produced and sent to the
+  feed receive service when a transaction is successfully committed
 
 Bug Fixes:
 
@@ -1104,21 +1110,18 @@ Features designed or considered, but not to be included in 1.0 series
 
 - Data Search
   - use elasticsearch.org
-  - get data from Data Feed, Data Search is a ConsumerSystem?
+  - get data from Data Feed, Data Search index is a feed receive service
   - receive#DataFeed interface service implementation
   - search includes dataDocumentId as a search term, key search term to constrain to results to dataDocumentId; limit search to specific indexName
-  - _index = indexName, _type = dataDocumentId, _id = (pk field values, underscore separated), use version?
+  x _index = indexName, _type = dataDocumentId, _id = (pk field values, underscore separated), use version?
 - Data Feed
   - API get outstanding data changes
   - API push outstanding data changes (registration/connection, time trigger)
-  - API push matching data change
+  x API push matching data change
   - API receive/persist data change messages
-  - DataDocument will handle entity name, conditions, etc: consumerSystemId, entityName (plain, view, db view), entityCondition (field value, cond list, date range, [where clause, field-field])
-  - Entity: DataFeed - dataFeedId, ...
-  - Entity: DataFeedDocument - dataFeedId, dataDocumentId
   - Consumer System Registry
-    - register service for push (service to call, ID), another for pull (ID)
-    - per DataDocument alreadySentDateTime
+    x register service for push (service to call, ID), another for pull (ID) (in DataFeed entity)
+    x per DataDocument alreadySentDateTime
     - feed transport (for each: supports confirmation?)
       - WebSocket (use Notification system, based on notificationName (and userAccountId?))
       - Moqui Service with receive#DataFeed service interface
