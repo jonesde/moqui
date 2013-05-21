@@ -493,7 +493,7 @@ abstract class EntityFindBase implements EntityFind {
 
         // put it in whether null or not
         if (doCache) {
-            entityOneCache.put(whereCondition, newEntityValue)
+            entityOneCache.put(whereCondition.toString(), newEntityValue)
             // need to register an RA just in case the condition was not actually a primary key
             efi.getEntityCache().registerCacheOneRa(this.entityName, whereCondition, (EntityValueBase) newEntityValue)
         }
@@ -590,7 +590,7 @@ abstract class EntityFindBase implements EntityFind {
         if (doCache) {
             EntityListImpl elToCache = el ?: EntityListImpl.EMPTY
             elToCache.setFromCache(true)
-            entityListCache.put(whereCondition, elToCache)
+            entityListCache.put(whereCondition.toString(), elToCache)
             efi.getEntityCache().registerCacheListRa(this.entityName, whereCondition, elToCache)
         }
         // run the final rules
@@ -733,7 +733,7 @@ abstract class EntityFindBase implements EntityFind {
         // call the abstract method
         long count = countExtended(whereCondition, havingCondition)
 
-        if (doCache) entityCountCache.put(whereCondition, count)
+        if (doCache) entityCountCache.put(whereCondition.toString(), count)
 
         efi.runEecaRules(ed.getFullEntityName(), simpleAndMap, "find-count", false)
         // count the artifact hit
