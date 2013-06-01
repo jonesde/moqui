@@ -110,7 +110,7 @@ class ServiceEcaRule {
 
         void enlist() {
             TransactionManager tm = ecfi.transactionFacade.getTransactionManager()
-            if (tm == null && tm.getStatus() != Status.STATUS_ACTIVE) throw new XAException("Cannot enlist: no transaction manager or transaction not active")
+            if (tm == null || tm.getStatus() != Status.STATUS_ACTIVE) throw new XAException("Cannot enlist: no transaction manager or transaction not active")
 
             Transaction tx = tm.getTransaction();
             if (tx == null) throw new XAException(XAException.XAER_NOTA)
