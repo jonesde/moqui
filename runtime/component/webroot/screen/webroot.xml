@@ -42,6 +42,8 @@ This Work includes contributions authored by David E. Jones, not as a
             '/assets/lib/timepicker/css/bootstrap-timepicker.min.css',
             '/assets/lib/switch/build/css/bootstrap3/bootstrap-switch.min.css',
         -->
+        <set field="html_scripts" from="html_scripts + ['/assets/js/core-app.js']"/>
+
         <set field="html_stylesheets" from="['/assets/lib/bootstrap/css/bootstrap.min.css',
             '/assets/lib/Font-Awesome/css/font-awesome.min.css',
             '/assets/css/main.min.css', '/assets/lib/uniform/themes/default/css/uniform.default.min.css',

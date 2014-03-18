@@ -273,3 +273,143 @@ input[type="text"].ui-autocomplete-input { width: auto; }
  * Partly fixed, but not really, by changing ["" + this.form_field.offsetWidth + ] to [$(this.form_field).width() + ] in chosen.jquery.min.js:
  */
 .chosen-container { min-width: 150px !important; }
+
+/* ================ data-tables theme =============== */
+.dataTable {
+  width: 100% !important;
+  clear: both;
+  margin-top: 5px;
+}
+
+.dataTables_filter label {
+  line-height: 32px ;
+}
+
+.dataTable .row-details {
+  margin-top: 3px;
+  display: inline-block;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.dataTable .row-details.row-details-close {
+  background: url("../img/datatable-row-openclose.png") no-repeat 0 0;
+}
+
+.dataTable .row-details.row-details-open {
+  background: url("../img/datatable-row-openclose.png") no-repeat 0 -23px ;
+}
+
+.dataTable .details {
+  background-color: #eee ;
+}
+
+.dataTable .details td,
+.dataTable .details th {
+  padding: 4px;
+  background-color: none ;
+  border: 0;
+}
+
+.dataTable .details tr:hover td,
+.dataTable .details tr:hover th {
+  background-color: none ;
+}
+
+.dataTable .details tr:nth-child(odd) td,
+.dataTable .details tr:nth-child(odd) th {
+  background-color: #eee ;
+}
+
+.dataTable .details tr:nth-child(even) td,
+.dataTable .details tr:nth-child(even) th {
+  background-color: #eee ;
+}
+
+.dataTable > thead > tr > th.sorting,
+.dataTable > thead > tr > th.sorting_asc,
+.dataTable > thead > tr > th.sorting_desc {
+   padding-right: 18px;
+}
+
+.dataTable .table-checkbox {
+  width: 8px !important;
+}
+
+@media (max-width: 768px) {
+  .dataTables_wrapper .dataTables_length .form-control,
+  .dataTables_wrapper .dataTables_filter .form-control {
+    display: inline-block;
+  }
+
+  .dataTables_wrapper .dataTables_info {
+    top: 17px;
+  }
+
+  .dataTables_wrapper .dataTables_paginate {
+    margin-top: -15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dataTables_wrapper .dataTables_filter .form-control {
+    width: 175px !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate {
+    float: left;
+    margin-top: 20px;
+  }
+}
+ .dataTables_processing {
+    background-color: #EEEEEE;
+    border: 1px solid #DDDDDD;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+    color: #333333;
+    font-size: 13px;
+    left: 50%;
+    margin-left: 0;
+    min-width: 125px;
+    padding: 7px;
+    position: fixed;
+    text-align: center;
+    top: 50%;
+    vertical-align: middle;
+}
+.dataTables_processing span {
+    line-height: 15px;
+    vertical-align: middle;
+}
+.dataTables_empty {
+    text-align: center;
+}
+.dataTables_extended_wrapper .seperator {
+    padding: 0 2px;
+}
+.dataTables_extended_wrapper .dataTables_paginate, .dataTables_extended_wrapper .dataTables_length, .dataTables_extended_wrapper .dataTables_info {
+    display: inline-block;
+    float: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+}
+@media (max-width: 480px) {
+.dataTables_extended_wrapper .dataTables_paginate, .dataTables_extended_wrapper .dataTables_length, .dataTables_extended_wrapper .dataTables_info {
+    display: block;
+    margin-bottom: 10px !important;
+}
+.dataTables_extended_wrapper .seperator {
+    display: none;
+}
+}
+.dataTables_extended_wrapper .dataTables_length label {
+    display: inline-block !important;
+    float: none !important;
+    font-size: 13px;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.table-container .table-actions-wrapper {
+    display: none;
+}
