@@ -141,6 +141,33 @@ This Work includes contributions authored by David E. Jones, not as a
                 <xs:annotation><xs:documentation>If true then this form will be considered dynamic and the internal
                     definition will be built up each time it is used instead of only when first referred to.</xs:documentation></xs:annotation>
             </xs:attribute>
+            <xs:attribute name="auto-width" type="xs:boolean" default="false">
+                <xs:annotation><xs:documentation>Used for data-tables, If true then dataTable.@bAutoWidth will be set to true, otherwise false in default.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="scroll" default="horizontal">
+                <xs:annotation><xs:documentation>Set overflow-x and overflow-y to the outter container of form-list that scrollbar displays
+                    when screen width is less than minimum width of form-list.</xs:documentation></xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:token">
+                        <xs:enumeration value="horizontal"/>
+                        <xs:enumeration value="vertical"/>
+                        <xs:enumeration value="both"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="type" default="form-list">
+                <xs:simpleType>
+                    <xs:restriction base="xs:token">
+                        <xs:enumeration value="form-list"/>
+                        <xs:enumeration value="ul-list"/>
+                        <xs:enumeration value="data-tables"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="ajax-source" type="xs:string">
+                <xs:annotation><xs:documentation>Define the source for data-tables</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="style" type="xs:string"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="row-actions">
@@ -214,6 +241,38 @@ This Work includes contributions authored by David E. Jones, not as a
         <xs:annotation><xs:documentation>Fields in this set will be in the same column in the list form table.</xs:documentation></xs:annotation>
         <xs:complexType>
             <xs:sequence><xs:element minOccurs="0" maxOccurs="unbounded" ref="field-ref"/></xs:sequence>
+            <xs:attribute name="text-align" default="left">
+                <xs:annotation><xs:documentation>Set text-align of field in body.</xs:documentation></xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:token">
+                        <xs:enumeration value="left"/>
+                        <xs:enumeration value="center"/>
+                        <xs:enumeration value="right"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="vertical-align" default="top">
+                <xs:annotation><xs:documentation>Set vertical of field in body.</xs:documentation></xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:token">
+                        <xs:enumeration value="top"/>
+                        <xs:enumeration value="middle"/>
+                        <xs:enumeration value="bottom"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="width" type="xs:string">
+                <xs:annotation><xs:documentation>Set width of column, e.g. 100px, 20%, 10em. The unit must be provided</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="min-width" type="xs:string">
+                <xs:annotation><xs:documentation>Set min-width of column, e.g. 100px, 20%, 10em. The unit must be provided</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="max-width" type="xs:string">
+                <xs:annotation><xs:documentation>Set min-width of column, e.g. 100px, 20%, 10em. The unit must be provided</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="style" type="xs:string">
+                <xs:annotation><xs:documentation>Define additional style of column for fine control</xs:documentation></xs:annotation>
+            </xs:attribute>
         </xs:complexType>
     </xs:element>
     <xs:element name="field-ref">
@@ -427,6 +486,19 @@ This Work includes contributions authored by David E. Jones, not as a
                         <xs:enumeration value="case-insensitive"/>
                     </xs:restriction>
                 </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="text-align" default="left">
+                <xs:simpleType>
+                    <xs:restriction base="xs:token">
+                        <xs:enumeration value="left"/>
+                        <xs:enumeration value="center"/>
+                        <xs:enumeration value="right"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="grouped" type="xs:boolean" default="false">
+                <xs:annotation><xs:documentation>To defined a checkbox in header to check and uncheck all checkboxes in same
+                    column of form-list body </xs:documentation></xs:annotation>
             </xs:attribute>
         </xs:complexType>
     </xs:element>
@@ -761,6 +833,27 @@ This Work includes contributions authored by David E. Jones, not as a
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="filter-button" substitutionGroup="SubFields">
+        <xs:annotation><xs:documentation>Show with search and reset button in header of data-tables</xs:documentation></xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="confirmation" type="xs:string"><xs:annotation><xs:documentation>
+                If there is a message here it will show in a confirmation box when the button is clicked on.
+            </xs:documentation></xs:annotation></xs:attribute>
+            <xs:attribute name="type" default="search-and-reset">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:enumeration value="submit"/>
+                        <xs:enumeration value="search-and-reset"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="search-icon" type="xs:string"/>
+            <xs:attribute name="reset-icon" type="xs:string"/>
+            <xs:attribute name="search-style" type="xs:string"/>
+            <xs:attribute name="reset-style" type="xs:string"/>
         </xs:complexType>
     </xs:element>
 
