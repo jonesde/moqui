@@ -463,7 +463,8 @@ class EntityQueryBuilder {
                         ps.setBytes(index, ((String) value).getBytes())
                     } else {
                         if (value != null) {
-                            ps.setBlob(index, (Blob) value)
+                            Blob blob = (Blob) value
+                            ps.setBytes(index, blob.getBytes(1, (int) blob.length()))
                         } else {
                             if (useBinaryTypeForBlob) { ps.setNull(index, Types.BINARY) } else { ps.setNull(index, Types.BLOB) }
                         }
