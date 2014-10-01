@@ -55,7 +55,7 @@
             <#--
         </div>
     </div>--><!-- /.topnav -->
-    <div class="collapse navbar-collapse navbar-ex1-collapse">
+    <div id="navbar-buttons" class="collapse navbar-collapse navbar-ex1-collapse">
         <!-- .nav -->
         <ul id="header-menus" class="nav navbar-nav">
             <#--
@@ -93,7 +93,7 @@
         </ul><!-- /.nav -->
         <div id="navbar-menu-crumbs"></div>
         <div class="navbar-text">${html_title!((sri.screenUrlInfo.targetScreen.getDefaultMenuName())!"Page")}</div>
-        <a href="/Login/logout" data-toggle="tooltip" data-original-title="Logout ${(ec.getUser().getUserAccount().userFullName)!!}" data-placement="bottom" class="btn btn-danger btn-sm navbar-btn navbar-right">
+        <a href="/Login/logout" data-toggle="tooltip" data-original-title="Logout ${(ec.getUser().getUserAccount().userFullName)!}" data-placement="bottom" class="btn btn-danger btn-sm navbar-btn navbar-right">
             <i class="glyphicon glyphicon-off"></i>
         </a>
         <a href="#" onclick="switchDarkLight();" data-toggle="tooltip" data-original-title="Switch Dark/Light" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right">

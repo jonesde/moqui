@@ -139,7 +139,7 @@ a.active { color: red; }
 ul.float-box { display: inline-block; list-style: none outside none; margin: 0 0 -8px 0; padding: 0; }
 ul.float-box li { background: #EEEEEE; display: inline-block; line-height: 18px; margin: 0 8px 8px 0; padding: 8px; float: left;
     box-shadow: 0 0 0 1px #F8F8F8 inset, 0 0 0 1px #CCCCCC; -webkit-box-shadow: 0 0 0 1px #F8F8F8 inset, 0 0 0 1px #CCCCCC; }
-.bg-dark ul.float-box li { background: #3a3a3a; -webkit-box-shadow: 0 0 0 1px #080808 inset, 0 0 0 1px #333;
+.bg-dark ul.float-box li { background: #333; -webkit-box-shadow: 0 0 0 1px #080808 inset, 0 0 0 1px #333;
     box-shadow: 0 0 0 1px #080808 inset, 0 0 0 1px #333; }
 
 .shaded-area { padding: 8px; }
@@ -253,13 +253,13 @@ form.editable-form button { background: white; color: #333; border: 1px solid; b
 .bg-dark form.editable-form button { background: #333; color: #EEE; }
 .bg-dark form.editable-form textarea { background-color: #3a3a3a; border-color: #222; }
 
-.modal-dialog { text-align: left; }
+.modal-dialog { text-align: left; } /* needed when right aligning the dialog button */
 
 .bg-light .box header { background-image: linear-gradient(#EEE 0px, #EEE 100%); }
 
 .bg-dark .box { border-color: #222; }
 .bg-dark .box header { background-image: linear-gradient(#333 0px, #333 100%);
-    background-repeat: repeat-x; border-color: #222; }
+    background-repeat: repeat-x; border-color: #222; } /* flat and dark */
 .bg-dark .box .body { background: transparent; }
 /* this is one of the default styles, but gets overridden by .bg-light>.dk so overridding again here */
 .bg-dark.dker { background-color:#303030 !important; }
@@ -267,5 +267,6 @@ form.editable-form button { background: white; color: #333; border: 1px solid; b
 .bg-light .login { background: url("/assets/img/pattern/cream_pixels.png") repeat #444; }
 .bg-dark .login { background: url("/assets/img/pattern/irongrip.png") repeat #444; }
 
+/* Metis makes the scrollbar invisible in webkit unless you hover over it, make it always visible */
 ::-webkit-scrollbar-thumb { background-color: #888; }
 ::-webkit-scrollbar-track { background: rgba(110, 110, 110, 0.25); }
