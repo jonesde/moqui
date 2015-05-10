@@ -1612,3 +1612,23 @@ a -> p, m -> i, h -> H, H -> h, M -> m, MMM -> M, MMMM -> MM
     </#if>
 </span>
 </#macro>
+
+<#macro rating>
+    <#if .node["@id"]?has_content>
+        <#assign ratingId = ec.resource.evaluateStringExpand(.node["@id"],"")/>
+    <#else>
+        <#assign ratingId><@fieldName .node/></#assign>
+    </#if>
+
+    <#assign value = .node["@value"]?default("0")/>
+    <#assign ratingValue = ec.resource.evaluateStringExpand(value, "0")/>
+    <#assign min = .node["@min"]?default("0")/>
+    <#assign max = .node["@max"]?default("5")/>
+    <#assign step = .node["@step"]?default("1")/>
+    <#assign size = .node["@size"]?default("xs")/>
+    <#assign stars = .node["@stars"]?default("5")/>
+    <#assign showClear = .node["@show-clear"]?default("false")/>
+
+    <input name="<@fieldName .node/>" id="${ratingId}" value="${ratingValue}" type="number" class="rating" data-min=${min} data-max=${max} data-step=${step} data-size="${size}" data-stars=${stars} data-show-clear="${showClear}">
+    <script language="javascript">$("#${ratingId}").rating();</script>
+</#macro>

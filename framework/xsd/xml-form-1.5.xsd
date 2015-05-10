@@ -847,6 +847,16 @@ This Work includes contributions authored by David E. Jones, not as a
             </xs:attribute>
         </xs:complexType>
     </xs:element>
+	<xs:element name="rating" substitutionGroup="SubFields">
+        <xs:complexType>
+            <xs:attribute name="min" type="xs:integer" default="0"/>
+            <xs:attribute name="max" type="xs:positiveInteger" default="5"/>
+            <xs:attribute name="step" type="xs:positiveInteger" default="1"/>
+            <xs:attribute name="size" type="xs:string" default="xs"/>
+            <xs:attribute name="stars" type="xs:positiveInteger" default="5"/>
+            <xs:attribute name="showClear" type="xs:boolean" default="false"/>
+        </xs:complexType>
+    </xs:element>
 
     <!-- ================== Field Sub-Sub-Elements ==================== -->
     <xs:element name="entity-options">
