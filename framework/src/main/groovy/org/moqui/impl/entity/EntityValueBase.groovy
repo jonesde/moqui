@@ -1040,8 +1040,6 @@ abstract class EntityValueBase implements EntityValue {
         ExecutionContextFactoryImpl ecfi = getEntityFacadeImpl().getEcfi()
         ExecutionContext ec = ecfi.getExecutionContext()
 
-        if (ed.createOnly()) throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be updated.")
-
         String authorizeSkip = ed.entityNode.attributes().get('authorize-skip')
         ec.getArtifactExecution().push(
                 new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_UPDATE").setParameters(valueMap),
@@ -1056,6 +1054,17 @@ abstract class EntityValueBase implements EntityValue {
         // it may be that the oldValues map is full of null values because the EntityValue didn't come from the db
         if (dbValueMap) for (Object val in dbValueMap.values()) if (val != null) { dbValueMapFromDb = true; break }
 
+        // to avoid error loading seed into create-only entity, get the dbValueMap to be compared with valueMap later
+        if (ed.createOnly() && !dbValueMapFromDb) {
+            EntityValue ev = ec.entity.makeFind(getEntityName()).condition(getPrimaryKeys()).one()
+            if (ev) {
+                setDbValueMap(ev)
+                dbValueMapFromDb = true;
+            } else {
+                throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be updated.")
+            }
+        }
+        
         List entityInfoList = doDataFeed() ? getEntityFacadeImpl().getEntityDataFeed().getDataFeedEntityInfoList(ed.getFullEntityName()) : []
 
         EntityValueImpl refreshedValue = null
