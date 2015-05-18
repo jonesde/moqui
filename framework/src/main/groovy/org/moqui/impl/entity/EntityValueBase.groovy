@@ -1054,6 +1054,17 @@ abstract class EntityValueBase implements EntityValue {
         // it may be that the oldValues map is full of null values because the EntityValue didn't come from the db
         if (dbValueMap) for (Object val in dbValueMap.values()) if (val != null) { dbValueMapFromDb = true; break }
 
+        // to avoid error loading seed into create-only entity, get the dbValueMap to be compared with valueMap later
+        if (ed.createOnly() && !dbValueMapFromDb) {
+            EntityValue ev = ec.entity.makeFind(getEntityName()).condition(getPrimaryKeys()).one()
+            if (ev) {
+                setDbValueMap(ev)
+                dbValueMapFromDb = true;
+            } else {
+                throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be updated.")
+            }
+        }
+        
         List entityInfoList = doDataFeed() ? getEntityFacadeImpl().getEntityDataFeed().getDataFeedEntityInfoList(ed.getFullEntityName()) : []
 
         EntityValueImpl refreshedValue = null
@@ -1073,6 +1084,11 @@ abstract class EntityValueBase implements EntityValue {
             if (valueMap.containsKey(fieldName) && valueMap.get(fieldName) != oldValues.get(fieldName))
                 nonPkFieldList.add(fieldName)
         }
+        
+        if (ed.createOnly() && dbValueMapFromDb && nonPkFieldList) {
+            throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be updated.")
+        }
+        
         // logger.warn("================ evb.update() ${getEntityName()} nonPkFieldList=${nonPkFieldList};\nvalueMap=${valueMap};\ndbValueMap=${dbValueMap}")
         if (!nonPkFieldList) {
             if (logger.isTraceEnabled()) logger.trace((String) "Not doing update on entity with no populated non-PK fields; entity=" + this.toString())
