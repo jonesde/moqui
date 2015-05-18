@@ -1086,6 +1086,11 @@ abstract class EntityValueBase implements EntityValue {
                 nonPkFieldList.add(fieldName)
             }
         }
+        
+        if (ed.createOnly() && dbValueMapFromDb && nonPkFieldList) {
+            throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be updated.")
+        }
+        
         // logger.warn("================ evb.update() ${getEntityName()} nonPkFieldList=${nonPkFieldList};\nvalueMap=${valueMap};\ndbValueMap=${dbValueMap}")
         if (!nonPkFieldList) {
             if (logger.isTraceEnabled()) logger.trace((String) "Not doing update on entity with no populated non-PK fields; entity=" + this.toString())
