@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * Contains a list of EntityValue objects.
- * Entity List that adds some additional operations like filtering to the basic List<EntityValue>.
+ * Entity List that adds some additional operations like filtering to the basic List&lt;EntityValue&gt;.
  *
  * The various methods here modify the internal list for efficiency and return a reference to this for convenience.
  * If you want a new EntityList with the modifications, use clone() or cloneList() then modify it.
@@ -107,7 +107,7 @@ public interface EntityList extends List<EntityValue>, Iterable<EntityValue>, Cl
 
     /** Method to implement the Iterable interface to allow an EntityList to be used in a foreach loop.
      *
-     * @return Iterator<EntityValue> to iterate over internal list.
+     * @return Iterator&lt;EntityValue&gt; to iterate over internal list.
      */
     Iterator<EntityValue> iterator();
 

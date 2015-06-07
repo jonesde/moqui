@@ -88,7 +88,7 @@ public interface UserFacade {
     boolean loginAnonymousIfNoUser();
 
     /** Check to see if current user has the given permission. To have a permission a user must be in a group
-     * (UserGroupMember => UserGroup) that has the given permission (UserGroupPermission).
+     * (UserGroupMember =&gt; UserGroup) that has the given permission (UserGroupPermission).
      *
      * @param userPermissionId Permission ID for record in UserPermission or any arbitrary permission name (does
      *     not have to be pre-configured, ie does not have to be in the UserPermission entity's table)

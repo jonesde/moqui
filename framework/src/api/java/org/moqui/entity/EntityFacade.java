@@ -80,8 +80,8 @@ public interface EntityFacade {
      * @param dataDocumentId Used to look up the DataDocument and related records (DataDocument* entities).
      * @param condition An optional condition to AND with from/thru updated timestamps and any DataDocumentCondition
      *                  records associated with the DataDocument.
-     * @param fromUpdateStamp The lastUpdatedStamp on at least one entity selected must be after (>=) this Timestamp.
-     * @param thruUpdatedStamp The lastUpdatedStamp on at least one entity selected must be before (<) this Timestamp.
+     * @param fromUpdateStamp The lastUpdatedStamp on at least one entity selected must be after (&gt;=) this Timestamp.
+     * @param thruUpdatedStamp The lastUpdatedStamp on at least one entity selected must be before (&lt;) this Timestamp.
      * @return List of Maps with these entries:
      *      - _index = tenantId + "__" + DataDocument.indexName
      *      - _type = dataDocumentId
@@ -98,8 +98,8 @@ public interface EntityFacade {
      * similar to the getDataDocuments() method except that the dataDocumentId(s) are looked up using the dataFeedId.
      *
      * @param dataFeedId Used to look up the DataFeed records to find the associated DataDocument records.
-     * @param fromUpdateStamp The lastUpdatedStamp on at least one entity selected must be after (>=) this Timestamp.
-     * @param thruUpdatedStamp The lastUpdatedStamp on at least one entity selected must be before (<) this Timestamp.
+     * @param fromUpdateStamp The lastUpdatedStamp on at least one entity selected must be after (&gt;=) this Timestamp.
+     * @param thruUpdatedStamp The lastUpdatedStamp on at least one entity selected must be before (&lt;) this Timestamp.
      * @return List of Maps with these entries:
      */
     List<Map> getDataFeedDocuments(String dataFeedId, Timestamp fromUpdateStamp, Timestamp thruUpdatedStamp);

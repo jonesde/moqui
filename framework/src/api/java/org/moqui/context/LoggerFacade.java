@@ -37,7 +37,7 @@ public interface LoggerFacade {
      *     Integer oldT = t;
      *     Integer t = temperature;
      *     logger.debug("Temperature set to {}. Old temperature was {}.", t, oldT);
-     *     if(temperature.intValue() > 50) {
+     *     if(temperature.intValue() &gt; 50) {
      *       logger.info("Temperature has risen above 50 degrees.");
      *     }
      *   }

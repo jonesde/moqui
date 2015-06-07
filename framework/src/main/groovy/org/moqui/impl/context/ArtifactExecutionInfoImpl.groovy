@@ -170,7 +170,7 @@ class ArtifactExecutionInfoImpl implements ArtifactExecutionInfo {
                     newTimes.add(time)
                 }
             }
-            if (knockOutCount > 0) {
+            if (knockOutCount > 0 && newTimes.size() > 0) {
                 // calc new average, add knockOutCount times to fill in gaps, calc new time total
                 BigDecimal newTotal = 0
                 BigDecimal newMax = 0

@@ -70,12 +70,12 @@ public interface EntityDataWriter {
      */
     EntityDataWriter orderBy(List<String> orderByList);
 
-    /** From date for lastUpdatedStamp on each entity (lastUpdatedStamp must be greater than or equal (>=) to fromDate).
+    /** From date for lastUpdatedStamp on each entity (lastUpdatedStamp must be greater than or equal (&gt;=) to fromDate).
      * @param fromDate The from date
      * @return Reference to this for convenience.
      */
     EntityDataWriter fromDate(Timestamp fromDate);
-    /** Thru date for lastUpdatedStamp on each entity (lastUpdatedStamp must be less than (<) to thruDate).
+    /** Thru date for lastUpdatedStamp on each entity (lastUpdatedStamp must be less than (&lt;) to thruDate).
      * @param thruDate The thru date
      * @return Reference to this for convenience.
      */
