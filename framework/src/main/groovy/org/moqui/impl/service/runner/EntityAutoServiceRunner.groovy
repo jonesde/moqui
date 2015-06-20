@@ -191,6 +191,8 @@ public class EntityAutoServiceRunner implements ServiceRunner {
                 EntityValue svi = efi.makeFind("moqui.entity.SequenceValueItem").condition("seqName", ed.getFullEntityName())
                         .useCache(false).one()
                 logger.warn("======= Got PK violation, current bank is ${bank}, PK is ${newEntityValue.getPrimaryKeys()}, current SequenceValueItem: ${svi}")
+            } else {
+                logger.warn("======= Error in create Entity ${ed.getFullEntityName()}", e)
             }
         }
 

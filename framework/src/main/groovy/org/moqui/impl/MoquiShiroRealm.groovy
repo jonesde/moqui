@@ -93,6 +93,8 @@ class MoquiShiroRealm implements Realm {
             // no account found?
             if (!newUserAccount) throw new UnknownAccountException("Username [${username}] and/or password incorrect.")
 
+            userId = newUserAccount.userId
+
             // check for disabled account before checking password (otherwise even after disable could determine if
             //    password is correct or not
             if (newUserAccount.disabled == "Y") {
@@ -150,7 +152,6 @@ class MoquiShiroRealm implements Realm {
             //     be done at this point
             alreadyDisabled = ecfi.executionContext.artifactExecution.disableAuthz()
             try {
-                userId = newUserAccount.userId
 
                 // no more auth failures? record the various account state updates, hasLoggedOut=N
                 if (newUserAccount.successiveFailedLogins != 0 || newUserAccount.disabled != "N" ||
@@ -176,7 +177,7 @@ class MoquiShiroRealm implements Realm {
                 if (userId != null && loginNode."@history-store" != "false") {
                     Map<String, Object> ulhContext =
                             [userId:userId, visitId:ecfi.executionContext.user.visitId, successfulLogin:(successful?"Y":"N")]
-                    if (!successful && loginNode."@history-incorrect-password" != "false") ulhContext.passwordUsed = token.credentials
+                    if (!successful && loginNode."@history-incorrect-password" != "false") ulhContext.passwordUsed = new String((char[])token.credentials)
                     try {
                         ecfi.serviceFacade.sync().name("create", "moqui.security.UserLoginHistory").parameters(ulhContext)
                                 .requireNewTransaction(true).disableAuthz().call()
