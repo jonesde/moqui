@@ -669,12 +669,12 @@ class ServiceDefinition {
             if (maxStr) {
                 BigDecimal max = new BigDecimal(maxStr)
                 if (valNode.attributes().get('max-include-equals') == "true") {
-                    if (max > bdVal) {
+                    if (bdVal > max) {
                         eci.message.addValidationError(null, parameterName, getServiceName(), "Value [${pv}] must be less than or equal to ${max}.", null)
                         return false
                     }
                 } else {
-                    if (max >= bdVal) {
+                    if (bdVal >= max) {
                         eci.message.addValidationError(null, parameterName, getServiceName(), "Value [${pv}] must be less than ${max}.", null)
                         return false
                     }
