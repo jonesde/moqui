@@ -37,7 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <#if urlInstance?exists && urlInstance.inCurrentScreenPath><#assign currentItemName = ec.l10n.localize(subscreensItem.menuTitle)></#if>
             </#list> -->
             <li id="${menuId}" class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">${menuTitle} <i class="glyphicon glyphicon-chevron-right"></i></a>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">${ec.l10n.localize(menuTitle)} <i class="glyphicon glyphicon-chevron-right"></i></a>
                 <ul class="dropdown-menu">
                     <#list sri.getActiveScreenDef().getMenuSubscreensItems() as subscreensItem>
                         <#assign urlInstance = sri.buildUrl(subscreensItem.name)>
@@ -78,7 +78,7 @@ along with this software (see the LICENSE.md file). If not, see
             </ul>
         </#if>
         <#-- add to navbar bread crumbs too -->
-        <div id="${menuId}-crumb" class="navbar-text">${menuTitle} <i class="glyphicon glyphicon-chevron-right"></i></div>
+        <div id="${menuId}-crumb" class="navbar-text">${ec.l10n.localize(menuTitle)} <i class="glyphicon glyphicon-chevron-right"></i></div>
         <script>$("#navbar-menu-crumbs").append($("#${menuId}-crumb"));</script>
     </#if>
 </#macro>
@@ -111,7 +111,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <#if urlInstance.inCurrentScreenPath><#assign currentItemName = ec.l10n.localize(subscreensItem.menuTitle)></#if>
             </#list> -->
             <li id="${menuId}" class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">${menuTitle} <i class="glyphicon glyphicon-chevron-right"></i></a>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">${ec.l10n.localize(menuTitle)} <i class="glyphicon glyphicon-chevron-right"></i></a>
                 <ul class="dropdown-menu">
                     <#list sri.getActiveScreenDef().getMenuSubscreensItems() as subscreensItem>
                         <#assign urlInstance = sri.buildUrl(subscreensItem.name)>
@@ -161,13 +161,13 @@ along with this software (see the LICENSE.md file). If not, see
                             <#assign urlInstance = urlInstance.addParameters(ec.web.requestParameters)>
                         </#if>
                     </#if>
-                    <li class="<#if urlInstance.disableLink>disabled<#elseif urlInstance.inCurrentScreenPath>active</#if>"><a href="<#if urlInstance.disableLink>#<#else>${urlInstance.minimalPathUrlWithParams}</#if>">${subscreensItem.menuTitle}</a></li>
+                    <li class="<#if urlInstance.disableLink>disabled<#elseif urlInstance.inCurrentScreenPath>active</#if>"><a href="<#if urlInstance.disableLink>#<#else>${urlInstance.minimalPathUrlWithParams}</#if>">${ec.l10n.localize(subscreensItem.menuTitle)}</a></li>
                 </#if>
             </#list>
             </ul>
         </#if>
         <#-- add to navbar bread crumbs too -->
-        <div id="${menuId}-crumb" class="navbar-text">${menuTitle} <i class="glyphicon glyphicon-chevron-right"></i></div>
+        <div id="${menuId}-crumb" class="navbar-text">${ec.l10n.localize(menuTitle)} <i class="glyphicon glyphicon-chevron-right"></i></div>
         <script>$("#navbar-menu-crumbs").append($("#${menuId}-crumb"));</script>
 
         <#if !dynamic || !displayMenu>
