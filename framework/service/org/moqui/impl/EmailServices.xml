@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -14,7 +14,7 @@ along with this software (see the LICENSE.md file). If not, see
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-1.5.xsd">
 
     <service verb="send" noun="EmailTemplate" authenticate="anonymous-view" type="script"
-             location="classpath://org/moqui/impl/sendEmailTemplate.groovy">
+             location="classpath://org/moqui/impl/sendEmailTemplate.groovy" allow-remote="false">
         <description>NOTE: this service is meant for internal use and authentication is not required. Do not export or
             allow this service to be called remotely.</description>
         <implements service="org.moqui.EmailServices.send#EmailTemplate"/>
@@ -22,6 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <service verb="poll" noun="EmailServer" authenticate="false" type="script" transaction-timeout="600"
              location="classpath://org/moqui/impl/pollEmailServer.groovy">
+        <!-- org.moqui.impl.EmailServices.poll#EmailServer -->
         <description>
             Poll an email server (IMAP or POP3) to receive messages. Each new message is processed using
             the Email-ECA rules. Messages are flagged as seen (if supported). Messages are deleted if the storeDelete
@@ -36,18 +37,30 @@ along with this software (see the LICENSE.md file). If not, see
     </service>
     
     <service verb="save" noun="EcaEmailMessage">
+        <!-- org.moqui.impl.EmailServices.save#EcaEmailMessage -->
         <implements service="org.moqui.EmailServices.process#EmailEca"/>
         <in-parameters>
             <parameter name="statusId" default-value="ES_RECEIVED"/>
         </in-parameters>
         <out-parameters><parameter name="emailMessageId"/></out-parameters>
         <actions>
+            <set field="messageId" from="headers.get('message-id')"/>
+            <if condition="messageId">
+                <entity-find entity-name="moqui.basic.email.EmailMessage" list="emailMessageList">
+                    <econdition field-name="emailServerId" ignore-if-empty="true"/>
+                    <econdition field-name="messageId"/>
+                </entity-find>
+                <if condition="emailMessageList">
+                    <return message="Found duplicate message with Message-ID [${messageId}] from server [${emailServerId}]"/></if>
+            </if>
+
+            <set field="body" from="bodyPartList ? bodyPartList[0].contentText : null"/>
             <service-call name="create#moqui.basic.email.EmailMessage" out-map="context"
                 in-map="[sentDate:fields.sentDate, receivedDate:fields.receivedDate, statusId:statusId,
-                    subject:fields.subject, body:fields.bodyPartList?.getAt(0),
+                    subject:fields.subject, body:body,
                     fromAddress:fields.from, toAddresses:fields.toList?.toString(),
                     ccAddresses:fields.ccList?.toString(), bccAddresses:fields.bccList?.toString(),
-                    messageId:headers.get('Message-ID')]"/>
+                    messageId:messageId, emailServerId:emailServerId]"/>
         </actions>
     </service>
 </services>

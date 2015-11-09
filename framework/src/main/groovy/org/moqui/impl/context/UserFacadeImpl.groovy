@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -112,6 +112,8 @@ class UserFacadeImpl implements UserFacade {
 
         // check for HTTP Basic Authorization for Authentication purposes
         // NOTE: do this even if there is another user logged in, will go on stack
+        Map multiPartParameters = eci.webFacade.multiPartParameters
+        Map jsonParameters = eci.webFacade.jsonParameters
         String authzHeader = request.getHeader("Authorization")
         if (authzHeader && authzHeader.substring(0, 6).equals("Basic ")) {
             String basicAuthEncoded = authzHeader.substring(6).trim()
@@ -119,7 +121,8 @@ class UserFacadeImpl implements UserFacade {
             if (basicAuthAsString.indexOf(":") > 0) {
                 String username = basicAuthAsString.substring(0, basicAuthAsString.indexOf(":"))
                 String password = basicAuthAsString.substring(basicAuthAsString.indexOf(":") + 1)
-                this.loginUser(username, password, null)
+                String tenantId = multiPartParameters?.authTenantId ?: jsonParameters?.authTenantId ?: request.getParameter("authTenantId")
+                this.loginUser(username, password, tenantId)
             } else {
                 logger.warn("For HTTP Basic Authorization got bad credentials string. Base64 encoded is [${basicAuthEncoded}] and after decoding is [${basicAuthAsString}].")
             }
@@ -129,13 +132,11 @@ class UserFacadeImpl implements UserFacade {
             String authUsername = null
             String authPassword = null
             String authTenantId = null
-            Map multiPartParameters = eci.webFacade.multiPartParameters
-            Map jsonParameters = eci.webFacade.jsonParameters
-            if (multiPartParameters && multiPartParameters.authUsername && multiPartParameters.authPassword) {
+            if (multiPartParameters && multiPartParameters.authUsername) {
                 authUsername = multiPartParameters.authUsername
                 authPassword = multiPartParameters.authPassword
                 authTenantId = multiPartParameters.authTenantId
-            } else if (jsonParameters && jsonParameters.authUsername && jsonParameters.authPassword) {
+            } else if (jsonParameters && jsonParameters.authUsername) {
                 authUsername = jsonParameters.authUsername
                 authPassword = jsonParameters.authPassword
                 authTenantId = jsonParameters.authTenantId
@@ -144,9 +145,7 @@ class UserFacadeImpl implements UserFacade {
                 authPassword = request.getParameter("authPassword")
                 authTenantId = request.getParameter("authTenantId")
             }
-            if (authUsername) {
-                this.loginUser(authUsername, authPassword, authTenantId)
-            }
+            if (authUsername) this.loginUser(authUsername, authPassword, authTenantId)
         }
 
         this.visitId = session.getAttribute("moqui.visitId")
@@ -462,7 +461,10 @@ class UserFacadeImpl implements UserFacade {
             loggedInAnonymous = false
 
             // after successful login trigger the after-login actions
-            if (eci.getWebImpl() != null) eci.getWebImpl().runAfterLoginActions()
+            if (eci.getWebImpl() != null) {
+                eci.getWebImpl().runAfterLoginActions()
+                eci.getWebImpl().getRequest().setAttribute("moqui.request.authenticated", "true")
+            }
         } catch (AuthenticationException ae) {
             // others to consider handling differently (these all inherit from AuthenticationException):
             //     UnknownAccountException, IncorrectCredentialsException, ExpiredCredentialsException,

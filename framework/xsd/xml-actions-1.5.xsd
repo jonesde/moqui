@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -314,11 +314,11 @@ along with this software (see the LICENSE.md file). If not, see
             <xs:attribute name="value-field" type="xs:string" use="required">
                 <xs:annotation><xs:documentation>Field to put result resulting EntityValue object in.</xs:documentation></xs:annotation>
             </xs:attribute>
-            <xs:attribute name="auto-field-map" type="boolean">
+            <xs:attribute name="auto-field-map" type="xs:string">
                 <xs:annotation><xs:documentation>
-                    Looks for all primary key fields by name in the context, and in the parameters map if not found in
-                    the context. Defaults to true. If a field-map sub-element is found this will default to false
-                    instead.
+                    If true looks for all primary key fields by name in the context. If empty defaults to true (context)
+                    unless field-map sub-element is found this will do nothing.
+                    If something other than true or false looks for fields in the given Map (an expression run in the current context).
                 </xs:documentation></xs:annotation>
             </xs:attribute>
             <xs:attribute name="cache" type="boolean">

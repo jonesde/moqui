@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -50,6 +50,7 @@ public class EntityDefinition {
     // small lists, but very frequently accessed
     protected ArrayList<String> pkFieldNameList = null
     protected ArrayList<String> nonPkFieldNameList = null
+    protected ArrayList<FieldInfo> nonPkFieldInfoList = null
     protected ArrayList<String> allFieldNameList = null
     protected Boolean hasUserFields = null
     protected Boolean allowUserField = null
@@ -70,6 +71,7 @@ public class EntityDefinition {
     protected Map<String, RelationshipInfo> relationshipInfoMap = null
     protected List<RelationshipInfo> relationshipInfoList = null
     protected boolean hasReverseRelationships = false
+    protected Map<String, MasterDefinition> masterDefinitionMap = null
 
     EntityDefinition(EntityFacadeImpl efi, Node entityNode) {
         this.efi = efi
@@ -177,14 +179,14 @@ public class EntityDefinition {
     @CompileStatic
     boolean createOnly() {
         if (createOnlyVal != null) return createOnlyVal
-        createOnlyVal = internalEntityNode.attribute('create-only') == "true"
+        createOnlyVal = "true".equals(internalEntityNode.attribute('create-only'))
         return createOnlyVal
     }
 
     @CompileStatic
     boolean optimisticLock() {
         if (optimisticLockVal != null) return optimisticLockVal
-        optimisticLockVal = internalEntityNode.attribute('optimistic-lock') == "true"
+        optimisticLockVal = "true".equals(internalEntityNode.attribute('optimistic-lock'))
         return optimisticLockVal
     }
 
@@ -268,6 +270,18 @@ public class EntityDefinition {
         fieldInfoMap.put(fieldName, fi)
         return fi
     }
+    @CompileStatic
+    ArrayList<FieldInfo> getNonPkFieldInfoList() {
+        if (nonPkFieldInfoList != null) return nonPkFieldInfoList
+
+        ArrayList<String> nonPkFieldNameList = getNonPkFieldNames()
+        int nonPkFieldNameListSize = nonPkFieldNameList.size()
+        ArrayList<FieldInfo> tempList = new ArrayList<>(nonPkFieldNameListSize)
+        for (int i = 0; i < nonPkFieldNameListSize; i++) tempList.add(getFieldInfo(nonPkFieldNameList.get(i)))
+
+        nonPkFieldInfoList = tempList
+        return nonPkFieldInfoList
+    }
 
     @CompileStatic
     static class FieldInfo {
@@ -285,6 +299,7 @@ public class EntityDefinition {
         boolean isSimple
         boolean enableLocalization
         boolean isUserField
+        boolean createOnly
 
         FieldInfo(EntityDefinition ed, Node fieldNode) {
             this.ed = ed
@@ -309,6 +324,7 @@ public class EntityDefinition {
             enableLocalization = 'true'.equals(fnAttrs.get('enable-localization'))
             isUserField = 'true'.equals(fnAttrs.get('is-user-field'))
             isSimple = !enableLocalization && !isUserField
+            createOnly = fnAttrs.get('create-only') ? 'true'.equals(fnAttrs.get('create-only')) : ed.createOnly()
         }
 
         String getFullColumnName(boolean includeFunctionAndComplex) {
@@ -538,16 +554,16 @@ public class EntityDefinition {
 
         RelationshipInfo(Node relNode, EntityDefinition fromEd, EntityFacadeImpl efi) {
             this.relNode = relNode
-            type = relNode.'@type'
+            type = relNode.attribute('type')
             isTypeOne = type.startsWith("one")
-            title = relNode.'@title' ?: ''
-            relatedEntityName = relNode.'@related-entity-name'
+            title = relNode.attribute('title') ?: ''
+            relatedEntityName = relNode.attribute('related-entity-name')
             this.fromEd = fromEd
             relatedEd = efi.getEntityDefinition(relatedEntityName)
             relatedEntityName = relatedEd.getFullEntityName()
 
             relationshipName = (title ? title + '#' : '') + relatedEntityName
-            shortAlias = relNode.'@short-alias' ?: ''
+            shortAlias = relNode.attribute('short-alias') ?: ''
             prettyName = relatedEd.getPrettyName(title, fromEd.internalEntityName)
             keyMap = getRelationshipExpandedKeyMapInternal(relNode, relatedEd)
             dependent = hasReverse()
@@ -572,59 +588,143 @@ public class EntityDefinition {
             return targetParameterMap
         }
 
-        String toString() { return relationshipName + (shortAlias ? "(${shortAlias})" : "") }
+        String toString() { return "${relationshipName}${shortAlias ? ' (' + shortAlias + ')' : ''}, type ${type}, one? ${isTypeOne}, dependent? ${dependent}" }
     }
 
-    EntityDependents getDependentsTree(Deque<String> ancestorEntities) {
-        EntityDependents edp = new EntityDependents()
-        edp.entityName = fullEntityName
-        edp.ed = this
+    @CompileStatic
+    MasterDefinition getMasterDefinition(String name) {
+        if (!name) name = "default"
+        if (masterDefinitionMap == null) makeMasterDefinitionMap()
+        return masterDefinitionMap.get(name)
+    }
 
-        if (ancestorEntities == null) ancestorEntities = new LinkedList()
-        ancestorEntities.addFirst(this.fullEntityName)
+    private synchronized void makeMasterDefinitionMap() {
+        Map<String, MasterDefinition> defMap = [:]
+        for (Node masterNode in internalEntityNode."master") {
+            MasterDefinition curDef = new MasterDefinition(this, masterNode)
+            defMap.put(curDef.name, curDef)
+        }
+        masterDefinitionMap = defMap
+    }
 
-        List<RelationshipInfo> relInfoList = getRelationshipsInfo(true)
-        for (RelationshipInfo relInfo in relInfoList) {
-            edp.allDescendants.add((String) relInfo.relatedEntityName)
-            String relName = (String) relInfo.relationshipName
-            edp.relationshipInfos.put(relName, relInfo)
-            // if (relInfo.shortAlias) edp.relationshipInfos.put((String) relInfo.shortAlias, relInfo)
-            EntityDefinition relEd = efi.getEntityDefinition((String) relInfo.relatedEntityName)
-            if (!edp.dependentEntities.containsKey(relName) && !ancestorEntities.contains(relEd.fullEntityName)) {
-                EntityDependents relEpd = relEd.getDependentsTree(ancestorEntities)
-                edp.allDescendants.addAll(relEpd.allDescendants)
-                edp.dependentEntities.put(relName, relEpd)
-            }
+    @CompileStatic
+    static class MasterDefinition {
+        String name
+        List<MasterDetail> detailList = []
+        MasterDefinition(EntityDefinition ed, Node masterNode) {
+            name = masterNode.attribute("name") ?: "default"
+            List<Node> detailNodeList = masterNode.getAt("detail") as List<Node>
+            for (Node detailNode in detailNodeList) detailList.add(new MasterDetail(ed, detailNode))
+        }
+    }
+    @CompileStatic
+    static class MasterDetail {
+        String relationshipName
+        EntityDefinition parentEd
+        RelationshipInfo relInfo
+        String relatedMasterName
+        List<MasterDetail> internalDetailList = []
+        MasterDetail(EntityDefinition parentEd, Node detailNode) {
+            this.parentEd = parentEd
+            relationshipName = detailNode.attribute("relationship")
+            relInfo = parentEd.getRelationshipInfo(relationshipName)
+            if (relInfo == null) throw new IllegalArgumentException("Invalid relationship name [${relationshipName}] for entity ${parentEd.getFullEntityName()}")
+            // logger.warn("Following relationship ${relationshipName}")
+
+            List<Node> detailNodeList = detailNode.getAt("detail") as List<Node>
+            for (Node childNode in detailNodeList) internalDetailList.add(new MasterDetail(relInfo.relatedEd, childNode))
+
+            relatedMasterName = (String) detailNode.attribute("use-master")
         }
 
-        ancestorEntities.removeFirst()
+        List<MasterDetail> getDetailList() {
+            if (relatedMasterName) {
+                List<MasterDetail> combinedList = new ArrayList<>(internalDetailList)
+                MasterDefinition relatedMaster = relInfo.relatedEd.getMasterDefinition(relatedMasterName)
+                if (relatedMaster == null) throw new IllegalArgumentException("Invalid use-master value [${relatedMasterName}], master not found in entity ${relInfo.relatedEntityName}")
+                // logger.warn("Including master ${relatedMasterName} on entity ${relInfo.relatedEd.getFullEntityName()}")
 
+                combinedList.addAll(relatedMaster.detailList)
+
+                return combinedList
+            } else {
+                return internalDetailList
+            }
+        }
+    }
+
+    EntityDependents getDependentsTree() {
+        EntityDependents edp = new EntityDependents(this, null, null)
         return edp
     }
 
     static class EntityDependents {
         String entityName
         EntityDefinition ed
-        Map<String, EntityDependents> dependentEntities = new HashMap()
-        Set<String> allDescendants = new HashSet()
+        Map<String, EntityDependents> dependentEntities = new TreeMap()
+        Set<String> descendants = new TreeSet()
         Map<String, RelationshipInfo> relationshipInfos = new HashMap()
 
+        EntityDependents(EntityDefinition ed, Deque<String> ancestorEntities, Map<String, EntityDependents> allDependents) {
+            this.ed = ed
+            entityName = ed.fullEntityName
+
+            if (ancestorEntities == null) ancestorEntities = new LinkedList()
+            ancestorEntities.addFirst(entityName)
+            if (allDependents == null) allDependents = new HashMap<String, EntityDependents>()
+            allDependents.put(entityName, this)
+
+            List<RelationshipInfo> relInfoList = ed.getRelationshipsInfo(true)
+            for (RelationshipInfo relInfo in relInfoList) {
+                if (!relInfo.dependent) continue
+                descendants.add(relInfo.relatedEntityName)
+                String relName = relInfo.relationshipName
+                relationshipInfos.put(relName, relInfo)
+                // if (relInfo.shortAlias) edp.relationshipInfos.put((String) relInfo.shortAlias, relInfo)
+                EntityDefinition relEd = ed.efi.getEntityDefinition((String) relInfo.relatedEntityName)
+                if (!dependentEntities.containsKey(relName) && !ancestorEntities.contains(relEd.fullEntityName)) {
+                    EntityDependents relEdp = allDependents.get(relEd.fullEntityName)
+                    if (relEdp == null) relEdp = new EntityDependents(relEd, ancestorEntities, allDependents)
+                    dependentEntities.put(relName, relEdp)
+                }
+            }
+
+            ancestorEntities.removeFirst()
+        }
+
+        TreeSet<String> getAllDescendants() {
+            TreeSet<String> allSet = new TreeSet()
+            populateAllDescendants(allSet)
+            return allSet
+        }
+        protected void populateAllDescendants(TreeSet<String> allSet) {
+            allSet.addAll(descendants)
+            for (EntityDependents edp in dependentEntities.values()) edp.populateAllDescendants(allSet)
+        }
+
         String toString() {
-            StringBuilder builder = new StringBuilder()
-            buildString(builder, 0)
+            StringBuilder builder = new StringBuilder(10000)
+            Set<String> entitiesVisited = new HashSet<>()
+            buildString(builder, 0, entitiesVisited)
             return builder.toString()
         }
         static final String indentBase = '- '
-        void buildString(StringBuilder builder, int level) {
+        void buildString(StringBuilder builder, int level, Set<String> entitiesVisited) {
             StringBuilder ib = new StringBuilder()
-            for (int i = 0; i < level; i++) ib.append(indentBase)
+            for (int i = 0; i <= level; i++) ib.append(indentBase)
             String indent = ib.toString()
 
-            // builder.append(indent).append(entityName).append('\n')
             for (Map.Entry<String, EntityDependents> entry in dependentEntities) {
                 RelationshipInfo relInfo = relationshipInfos.get(entry.getKey())
-                builder.append(indent).append(indentBase).append(relInfo.relationshipName).append(' ').append(relInfo.keyMap).append('\n')
-                entry.getValue().buildString(builder, level+1)
+                builder.append(indent).append(relInfo.relationshipName).append(' ').append(relInfo.keyMap).append('\n')
+                if (level < 8 && !entitiesVisited.contains(entry.getValue().entityName)) {
+                    entry.getValue().buildString(builder, level+1, entitiesVisited)
+                    entitiesVisited.add(entry.getValue().entityName)
+                } else if (entitiesVisited.contains(entry.getValue().entityName)) {
+                    builder.append(indent).append(indentBase).append('Dependants already displayed\n')
+                } else if (level == 8) {
+                    builder.append(indent).append(indentBase).append('Reached level limit\n')
+                }
             }
         }
     }
@@ -884,6 +984,198 @@ public class EntityDefinition {
             nonPkFieldDefaults = newDefaults
         }
         return nonPkFieldDefaults
+    }
+
+    protected static final Map<String, String> fieldTypeJsonMap = [
+            "id":"string", "id-long":"string", "text-indicator":"string", "text-short":"string", "text-medium":"string",
+            "text-long":"string", "text-very-long":"string", "date-time":"string", "time":"string",
+            "date":"string", "number-integer":"number", "number-float":"number",
+            "number-decimal":"number", "currency-amount":"number", "currency-precise":"number",
+            "binary-very-long":"string" ] // NOTE: binary-very-long may need hyper-schema stuff
+    static final Map paginationParameters =
+            [type:'object', properties:
+                    [pageIndex:[type:'number', description:'Page number to return, starting with zero'],
+                     pageSize:[type:'number', description:'Number of records per page (default 100)'],
+                     orderByField:[type:'string', description:'Field name to order by (or comma separated names)'],
+                     pageNoLimit:[type:'string', description:'If true don\'t limit page size (no pagination)'],
+                     dependentLevels:[type:'number', description:'Levels of dependent child records to include']
+                    ]
+            ]
+
+    @CompileStatic
+    List<String> getFieldEnums(FieldInfo fi) {
+        // populate enum values for Enumeration and StatusItem
+        // find first relationship that has this field as the only key map and is not a many relationship
+        RelationshipInfo oneRelInfo = null
+        List<RelationshipInfo> allRelInfoList = getRelationshipsInfo(false)
+        for (RelationshipInfo relInfo in allRelInfoList) {
+            Map km = relInfo.keyMap
+            if (km.size() == 1 && km.containsKey(fi.name) && relInfo.type == "one" && relInfo.relNode.attribute("is-auto-reverse") != "true") {
+                oneRelInfo = relInfo
+                break;
+            }
+        }
+        if (oneRelInfo != null && oneRelInfo.title) {
+            if (oneRelInfo.relatedEd.getFullEntityName() == 'moqui.basic.Enumeration') {
+                EntityList enumList = efi.find("moqui.basic.Enumeration").condition("enumTypeId", oneRelInfo.title)
+                        .orderBy("sequenceNum,enumId").disableAuthz().list()
+                if (enumList) {
+                    List<String> enumIdList = [null]
+                    for (EntityValue ev in enumList) enumIdList.add((String) ev.enumId)
+                    return enumIdList
+                }
+            } else if (oneRelInfo.relatedEd.getFullEntityName() == 'moqui.basic.StatusItem') {
+                EntityList statusList = efi.find("moqui.basic.StatusItem").condition("statusTypeId", oneRelInfo.title)
+                        .orderBy("sequenceNum,statusId").disableAuthz().list()
+                if (statusList) {
+                    List<String> statusIdList = [null]
+                    for (EntityValue ev in statusList) statusIdList.add((String) ev.statusId)
+                    return statusIdList
+                }
+            }
+        }
+        return null
+    }
+
+    @CompileStatic
+    Map getJsonSchema(boolean standalone, Map<String, Object> definitionsMap, String schemaUri, String linkPrefix, String schemaLinkPrefix) {
+        String name = getShortAlias() ?: getFullEntityName()
+        String prettyName = getPrettyName(null, null)
+
+        Map<String, Object> properties = [:]
+        properties.put('_entity', [type:'string', default:name])
+        Map<String, Object> schema = [id:name, title:prettyName, type:'object', properties:properties] as Map<String, Object>
+
+        // add all fields
+        ArrayList<String> allFields = getAllFieldNames(true)
+        for (int i = 0; i < allFields.size(); i++) {
+            FieldInfo fi = getFieldInfo(allFields.get(i))
+            Map<String, Object> propMap = [:]
+            propMap.put('type', fieldTypeJsonMap.get(fi.type))
+            if (fi.type == 'date-time') propMap.put('format', 'date-time')
+            properties.put(fi.getName(), propMap)
+
+            List enumList = getFieldEnums(fi)
+            if (enumList) propMap.put('enum', enumList)
+        }
+
+
+        // put current schema in Map before nesting for relationships, avoid infinite recursion with entity rel loops
+        if (standalone && definitionsMap == null) {
+            definitionsMap = [:]
+            definitionsMap.put('paginationParameters', paginationParameters)
+        }
+        if (definitionsMap != null && !definitionsMap.containsKey(name))
+            definitionsMap.put(name, schema)
+
+        // add all relationships, nest
+        List<RelationshipInfo> relInfoList = getRelationshipsInfo(true)
+        for (RelationshipInfo relInfo in relInfoList) {
+            String relationshipName = relInfo.relationshipName
+            String entryName = relInfo.shortAlias ?: relationshipName
+            String relatedRefName = relInfo.relatedEd.shortAlias ?: relInfo.relatedEd.getFullEntityName()
+
+            // recurse, let it put itself in the definitionsMap
+            if (definitionsMap != null && !definitionsMap.containsKey(relatedRefName))
+                relInfo.relatedEd.getJsonSchema(false, definitionsMap, schemaUri, linkPrefix, schemaLinkPrefix)
+
+            if (relInfo.type == "many") {
+                properties.put(entryName, [type:'array', items:['$ref':('#/definitions/' + relatedRefName)]])
+            } else {
+                properties.put(entryName, ['$ref':('#/definitions/' + relatedRefName)])
+            }
+        }
+
+        // add links (for Entity REST API)
+        if (linkPrefix) {
+            List<String> pkNameList = getPkFieldNames()
+            StringBuilder idSb = new StringBuilder()
+            for (String pkName in pkNameList) idSb.append('/{').append(pkName).append('}')
+            String idString = idSb.toString()
+
+            List linkList = [
+                [rel:'self', method:'GET', href:"${linkPrefix}/${name}${idString}", title:"Get single ${prettyName}",
+                    targetSchema:['$ref':"#/definitions/${name}"]],
+                [rel:'instances', method:'GET', href:"${linkPrefix}/${name}", title:"Get list of ${prettyName}",
+                    schema:[allOf:[['$ref':'#/definitions/paginationParameters'], ['$ref':"#/definitions/${name}"]]],
+                    targetSchema:[type:'array', items:['$ref':"#/definitions/${name}"]]],
+                [rel:'create', method:'POST', href:"${linkPrefix}/${name}", title:"Create ${prettyName}",
+                    schema:['$ref':"#/definitions/${name}"]],
+                [rel:'update', method:'PATCH', href:"${linkPrefix}/${name}${idString}", title:"Update ${prettyName}",
+                    schema:['$ref':"#/definitions/${name}"]],
+                [rel:'store', method:'PUT', href:"${linkPrefix}/${name}${idString}", title:"Create or Update ${prettyName}",
+                    schema:['$ref':"#/definitions/${name}"]],
+                [rel:'destroy', method:'DELETE', href:"${linkPrefix}/${name}${idString}", title:"Delete ${prettyName}",
+                    schema:['$ref':"#/definitions/${name}"]]
+            ]
+            if (schemaLinkPrefix) linkList.add([rel:'describedBy', method:'GET', href:"${schemaLinkPrefix}/${name}", title:"Get schema for ${prettyName}"])
+
+            schema.put('links', linkList)
+        }
+
+        if (standalone) {
+            return ['$schema':'http://json-schema.org/draft-04/hyper-schema#', id:"${schemaUri}/${name}",
+                    '$ref':"#/definitions/${name}", definitions:definitionsMap]
+        } else {
+            return schema
+        }
+    }
+
+    static final Map ramlPaginationParameters = [
+             pageIndex:[type:'number', description:'Page number to return, starting with zero'],
+             pageSize:[type:'number', default:100, description:'Number of records per page (default 100)'],
+             orderByField:[type:'string', description:'Field name to order by (or comma separated names)'],
+             pageNoLimit:[type:'string', description:'If true don\'t limit page size (no pagination)'],
+             dependentLevels:[type:'number', description:'Levels of dependent child records to include']
+            ]
+
+    @CompileStatic
+    Map getRamlApi() {
+        String name = getShortAlias() ?: getFullEntityName()
+        String prettyName = getPrettyName(null, null)
+
+        Map<String, Object> ramlMap = [:]
+
+        // setup field info
+        Map qpMap = [:]
+        ArrayList<String> allFields = getAllFieldNames(true)
+        for (int i = 0; i < allFields.size(); i++) {
+            FieldInfo fi = getFieldInfo(allFields.get(i))
+            Map<String, Object> propMap = [:]
+            propMap.put('type', fieldTypeJsonMap.get(fi.type))
+            qpMap.put(fi.getName(), propMap)
+
+            List enumList = getFieldEnums(fi)
+            if (enumList) propMap.put('enum', enumList)
+        }
+
+        // get list
+        // TODO: make body array of schema
+        ramlMap.put('get', [is:['paged'], description:"Get list of ${prettyName}".toString(), queryParameters:qpMap,
+                            responses:[200:[body:['application/json': [schema:name]]]]])
+        // create
+        ramlMap.put('post', [description:"Create ${prettyName}".toString(), body:['application/json': [schema:name]]])
+
+        // under IDs for single record operations
+        List<String> pkNameList = getPkFieldNames()
+        Map recordMap = ramlMap
+        for (String pkName in pkNameList) {
+            Map childMap = [:]
+            recordMap.put('/{' + pkName + '}', childMap)
+            recordMap = childMap
+        }
+
+        // get single
+        recordMap.put('get', [description:"Get single ${prettyName}".toString(),
+                            responses:[200:[body:['application/json': [schema:name]]]]])
+        // update
+        recordMap.put('patch', [description:"Update ${prettyName}".toString(), body:['application/json': [schema:name]]])
+        // store
+        recordMap.put('put', [description:"Create or Update ${prettyName}".toString(), body:['application/json': [schema:name]]])
+        // delete
+        recordMap.put('delete', [description:"Delete ${prettyName}".toString()])
+
+        return ramlMap
     }
 
     List<Node> getFieldNodes(boolean includePk, boolean includeNonPk, boolean includeUserFields) {

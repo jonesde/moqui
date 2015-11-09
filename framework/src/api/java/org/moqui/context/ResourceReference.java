@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -13,6 +13,7 @@
 package org.moqui.context;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
@@ -28,6 +29,7 @@ public interface ResourceReference {
     String getFileName();
 
     InputStream openStream();
+    OutputStream getOutputStream();
     String getText();
 
     /** The content (MIME) type for this content, if known or can be determined. */

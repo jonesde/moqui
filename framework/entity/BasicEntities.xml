@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -315,11 +315,9 @@ along with this software (see the LICENSE.md file). If not, see
     <entity entity-name="EmailMessage" package-name="moqui.basic.email" cache="false">
         <field name="emailMessageId" type="id" is-pk="true"/>
         <field name="rootEmailMessageId" type="id">
-            <description>For threaded messages, this points to the message that started the thread.</description>
-        </field>
+            <description>For threaded messages, this points to the message that started the thread.</description></field>
         <field name="parentEmailMessageId" type="id">
-            <description>For threaded messages, this points to the previous message in the thread.</description>
-        </field>
+            <description>For threaded messages, this points to the previous message in the thread.</description></field>
         <field name="statusId" type="id" enable-audit-log="true"/>
         <field name="emailTypeEnumId" type="id"/>
         <field name="sentDate" type="date-time"/>
@@ -337,8 +335,8 @@ along with this software (see the LICENSE.md file). If not, see
         <field name="fromUserId" type="id-long"/>
         <field name="toUserId" type="id-long"/>
         <field name="emailTemplateId" type="id">
-            <description>For outgoing messages that came from an EmailTemplate.</description>
-        </field>
+            <description>For outgoing messages that came from an EmailTemplate.</description></field>
+        <field name="emailServerId" type="id"/>
 
         <relationship type="one" title="EmailMessage" related-entity-name="moqui.basic.StatusItem"/>
         <relationship type="one" title="EmailType" related-entity-name="moqui.basic.Enumeration">
@@ -352,7 +350,9 @@ along with this software (see the LICENSE.md file). If not, see
         <relationship type="one" title="To" related-entity-name="moqui.security.UserAccount">
             <key-map field-name="toUserId"/></relationship>
         <relationship type="one" related-entity-name="moqui.basic.email.EmailTemplate"/>
-        <index name="EMAIL_MSG_ID" unique="true"><index-field name="messageId"/></index>
+        <relationship type="one" related-entity-name="moqui.basic.email.EmailServer"/>
+
+        <index name="EMAIL_MSG_ID"><index-field name="messageId"/></index>
 
         <seed-data>
             <!-- Email Message Status -->
@@ -394,15 +394,19 @@ along with this software (see the LICENSE.md file). If not, see
         <field name="storeHost" type="text-medium"/>
         <field name="storePort" type="text-short"/>
         <field name="storeProtocol" type="text-short"/>
+        <field name="storeFolder" type="text-medium"><description>Defaults to INBOX</description></field>
         <field name="storeDelete" type="text-indicator"/>
+        <field name="storeMarkSeen" type="text-indicator"/>
+        <field name="storeSkipSeen" type="text-indicator"/>
         <field name="mailUsername" type="text-medium"/>
         <field name="mailPassword" type="text-medium" encrypt="true"/>
         <seed-data>
             <!-- NOTE: these are skeleton settings and some fields need to be filled in (probably best with another data file)
                 for your specific installation in order to be functional -->
             <moqui.basic.email.EmailServer emailServerId="SYSTEM"
-                         smtpHost="" smtpPort="25" smtpStartTls="N" smtpSsl="N"
-                         storeHost="" storePort="143" storeProtocol="imap" storeDelete="N"
+                         smtpHost="" smtpPort="465" smtpStartTls="N" smtpSsl="Y"
+                         storeHost="" storePort="993" storeProtocol="imaps" storeFolder=""
+                         storeDelete="N" storeMarkSeen="Y" storeSkipSeen="Y"
                          mailUsername="" mailPassword=""/>
             <!-- Other common values:
                 smtpPort="25" (std) smtpPort="465" (ssmtp) smtpPort="587" (ssmtp?)
@@ -417,8 +421,10 @@ along with this software (see the LICENSE.md file). If not, see
         <field name="emailServerId" type="id"/>
         <field name="fromAddress" type="text-medium"/>
         <field name="fromName" type="text-medium"/>
-        <field name="ccAddresses" type="text-medium"/>
-        <field name="bccAddresses" type="text-medium"/>
+        <field name="replyToAddresses" type="text-medium"><description>Comma separated list of reply to email addresses</description></field>
+        <field name="bounceAddress" type="text-medium"/>
+        <field name="ccAddresses" type="text-medium"><description>Comma separated list of CC email addresses</description></field>
+        <field name="bccAddresses" type="text-medium"><description>Comma separated list of BCC email addresses</description></field>
         <field name="subject" type="text-long"/>
         <field name="bodyScreenLocation" type="text-medium"/>
         <field name="webappName" type="text-medium"/>

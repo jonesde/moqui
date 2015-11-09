@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -20,7 +20,7 @@ The actual build is done with Gradle.
 
 <project name="Moqui WAR Tools" default="run" basedir=".">
     <property environment="env"/>
-    <property name="version" value="1.5.3"/>
+    <property name="version" value="1.5.4"/>
     <property name="tomcat.home" value="../apache-tomcat-8.0.21"/>
 
     <property name="moqui.runtime" value="runtime"/>

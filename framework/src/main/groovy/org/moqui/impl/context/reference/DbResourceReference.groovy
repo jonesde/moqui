@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -61,6 +61,11 @@ class DbResourceReference extends BaseResourceReference {
         EntityValue dbrf = getDbResourceFile()
         if (dbrf == null) return null
         return dbrf.getSerialBlob("fileData")?.getBinaryStream()
+    }
+
+    @Override
+    OutputStream getOutputStream() {
+        throw new UnsupportedOperationException("The getOutputStream method is not supported for DB resources, use putStream() instead")
     }
 
     @Override

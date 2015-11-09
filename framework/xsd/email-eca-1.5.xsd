@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -23,9 +23,12 @@ along with this software (see the LICENSE.md file). If not, see
                 Whenever an email message is received the actions will be run if the condition is met.
 
                 The context for the condition and actions will include a "headers" Map with all of the
-                email headers in it (either String, or List of String if there are more than one of the header), and a
-                "fields" Map with the following: toList, ccList, bccList, from, subject, sentDate, receivedDate,
-                bodyPartList.
+                email headers in it (either String, or List of String if there are more than one of the header), a
+                "fields" Map with the following: toList, ccList, bccList, from, subject, sentDate, and receivedDate,
+                a "flags Map, and a bodyPartList which is a List of Map with info for each body part.
+
+                For a full description of the structure see the org.moqui.EmailServices.process#EmailEca service
+                interface. If a single service is used to process the email it should implement this interface.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>

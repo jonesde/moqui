@@ -17,7 +17,7 @@
         <!-- NOTE: when you set https-enabled="true" make sure to set the http-port and https-port attributes -->
         <webapp name="webroot" http-port="" http-host=""
                 https-port="" https-host="" https-enabled="false"
-                content-prefix-secure="" content-prefix-standard="" cookie-domain="">
+                require-session-token="true">
             <root-screen host=".*" location="component://webroot/screen/webroot.xml"/>
         </webapp>
     </webapp-list>

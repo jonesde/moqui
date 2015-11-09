@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -73,7 +73,7 @@ class ExampleServiceTests extends Specification {
     def "send and consume ExampleMessage"() {
         when:
         // use the direct/local "remote" because no web server is running for local RPC call
-        Map result = ec.service.sync().name("org.moqui.example.ExampleServices.send#ExampleMessage")
+        Map result = ec.service.sync().name("org.moqui.example.ExampleServices.produce#ExampleMessage")
                 .parameters([exampleId:'TEST2', systemMessageRemoteId:'Example1Direct']).call()
         // message is sent async so wait 0.5 second, should be more than plenty for Quartz to pick it up, etc
         sleep(1500)

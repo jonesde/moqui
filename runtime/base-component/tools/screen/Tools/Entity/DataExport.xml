@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -75,7 +75,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <radio no-current-selected-key="XML"><option key="XML"/><option key="JSON"/></radio>
             </default-field></field>
             <field name="output">
-                <default-field><radio no-current-selected-key="file">
+                <default-field><radio no-current-selected-key="browser">
                     <option key="file" text="Single File"/>
                     <option key="dir" text="Directory (one file per entity)"/>
                     <option key="browser" text="Out to Browser"/>

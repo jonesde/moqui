@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -215,7 +215,7 @@ public interface EntityValue extends Map<String, Object>, Serializable, Comparab
      */
     boolean checkFks(boolean insertDummy) throws EntityException;
 
-    void checkAgainstDatabase(List messages);
+    long checkAgainstDatabase(List messages);
 
     /** Makes an XML Element object with an attribute for each field of the entity
      * @param document The XML Document that the new Element will be part of
@@ -238,4 +238,7 @@ public interface EntityValue extends Map<String, Object>, Serializable, Comparab
      * relationship name (title + related-entity-name). Each dependent entity's Map may have its own dependent records
      * up to dependentLevels levels deep.*/
     Map<String, Object> getPlainValueMap(int dependentLevels);
+
+    /** List getPlainValueMap() but uses a master definition to determine which dependent/related records to get. */
+    Map<String, Object> getMasterValueMap(String name);
 }

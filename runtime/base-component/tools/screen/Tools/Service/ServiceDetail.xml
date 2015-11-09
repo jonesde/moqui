@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -66,7 +66,7 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="XmlActionDisplaySection" condition="sd.xmlAction">
             <widgets>
                 <label text="XML Actions" type="h3"/>
-                <container type="pre" style="line-numbers"><label text="${org.moqui.impl.StupidUtilities.encodeForXmlAttribute(org.moqui.impl.FtlNodeWrapper.prettyPrintNode(serviceNode.actions[0]))}"
+                <container type="pre" style="line-numbers"><label text="${org.moqui.impl.StupidUtilities.encodeForXmlAttribute(org.moqui.impl.util.FtlNodeWrapper.prettyPrintNode(serviceNode.actions[0]))}"
                         type="code" style="language-markup" encode="false"/></container>
 
                 <label text="Generated Groovy" type="h3"/>

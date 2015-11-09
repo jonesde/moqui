@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -67,16 +67,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display text="${artifactSubType}"/></default-field>
             </field>
             <field name="artifactName">
-                <header-field show-order-by="true"><text-find hide-options="true" size="20"/></header-field>
+                <header-field show-order-by="true"><text-find hide-options="true" size="30"/></header-field>
                 <!-- NOTE: these replace() calls are to add spaces so that longer artifactNames can wrap instead of making the table super-wide: ?.replace('/',' / ')?.replace(' /  / ', '//')?.replace('.',' . ') -->
                 <default-field><display text="${artifactName}"/></default-field>
             </field>
             <field name="binStartDateTime">
-                <header-field title="Bin Start" show-order-by="true"><text-find hide-options="true" size="15"/></header-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="hitCount">
-                <header-field title="Hits" show-order-by="true"/>
+                <header-field title="Bin Start" show-order-by="true"><date-period allow-empty="true"/></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="totalTimeMillis">
@@ -93,11 +89,23 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="averageTime"><default-field title="Avg"><display/></default-field></field>
             <field name="stdDev"><default-field title="Std Dev"><display/></default-field></field>
+            <field name="hitCount">
+                <header-field title="Hits" show-order-by="true"/>
+                <default-field><display/></default-field>
+            </field>
             <field name="slowHitCount">
                 <header-field title="Slow Hits" show-order-by="true"/>
                 <default-field><display/></default-field>
             </field>
             <field name="find"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="artifactType"/><field-ref name="artifactSubType"/></form-list-column>
+            <form-list-column><field-ref name="artifactName"/><field-ref name="binStartDateTime"/></form-list-column>
+            <form-list-column><field-ref name="totalTimeMillis"/></form-list-column>
+            <form-list-column><field-ref name="minTimeMillis"/><field-ref name="maxTimeMillis"/></form-list-column>
+            <form-list-column><field-ref name="averageTime"/><field-ref name="stdDev"/></form-list-column>
+            <form-list-column><field-ref name="hitCount"/><field-ref name="slowHitCount"/></form-list-column>
+            <form-list-column><field-ref name="find"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

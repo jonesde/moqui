@@ -1,6 +1,7 @@
 Moqui Framework (http://github.com/moqui/moqui)
 
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -10,6 +11,8 @@ warranty.
 You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
+
+===========================================================================
 
 Copyright Waiver
 
@@ -39,3 +42,31 @@ Written in 2014-2015 by Yao Chunlin - chunlinyao
 Written in 2014-2015 by Jimmy Shen  - shendepu
 Written in 2014-2015 by Dony Zulkarnaen - donniexyz
 Written in 2015 by Sam Hamilton - samhamilton
+Written in 2015 by Leonardo Carvalho - CarvalhoLeonardo
+Written in 2015 by Swapnil M Mane - swapnilmmane
+
+===========================================================================
+
+Grant of Patent License
+
+I hereby grant to recipients of software a perpetual, worldwide,
+non-exclusive, no-charge, royalty-free, irrevocable (except as stated in
+this section) patent license to make, have made, use, offer to sell, sell,
+import, and otherwise transfer the Work, where such license applies only to
+those patent claims licensable by me that are necessarily infringed by my
+Contribution(s) alone or by combination of my Contribution(s) with the
+Work to which such Contribution(s) was submitted. If any entity institutes
+patent litigation against me or any other entity (including a cross-claim
+or counterclaim in a lawsuit) alleging that my Contribution, or the Work to
+which I have contributed, constitutes direct or contributory patent
+infringement, then any patent licenses granted to that entity under this
+Agreement for that Contribution or Work shall terminate as of the date such
+litigation is filed.
+
+Signed by git commit adding my legal name and git username:
+
+Written in 2010-2015 by David E. Jones - jonesde
+Written in 2014-2015 by Yao Chunlin - chunlinyao
+Written in 2015 by Dony Zulkarnaen - donniexyz
+Written in 2015 by Swapnil M Mane - swapnilmmane
+Written in 2015 by Jimmy Shen - shendepu

@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -15,6 +15,7 @@ package org.moqui.impl.service
 import groovy.transform.CompileStatic
 import org.moqui.BaseException
 import org.moqui.context.ArtifactAuthorizationException
+import org.moqui.context.ArtifactExecutionInfo
 import org.moqui.context.TransactionException
 import org.moqui.context.TransactionFacade
 import org.moqui.entity.EntityValue
@@ -166,7 +167,11 @@ class ServiceCallSyncImpl extends ServiceCallImpl implements ServiceCallSync {
         if (sd != null) sd.convertValidateCleanParameters(currentParameters, eci)
         // if error(s) in parameters, return now with no results
         if (eci.getMessage().hasError()) {
-            logger.warn("Found error(s) when validating input parameters for service [${getServiceName()}], so not running service. Errors: ${eci.getMessage().getErrorsString()}; the artifact stack is:\n ${eci.artifactExecution.stack}")
+            StringBuilder errMsg = new StringBuilder("Found error(s) when validating input parameters for service [${getServiceName()}], so not running service. Errors: ${eci.getMessage().getErrorsString()}; the artifact stack is:\n")
+            for (ArtifactExecutionInfo stackItem in eci.artifactExecution.stack) {
+                errMsg.append(stackItem.toString()).append('\n')
+            }
+            logger.warn(errMsg.toString())
             return null
         }
 
@@ -186,9 +191,9 @@ class ServiceCallSyncImpl extends ServiceCallImpl implements ServiceCallSync {
         // NOTE: don't require authz if the service def doesn't authenticate
         // NOTE: if no sd then requiresAuthz is false, ie let the authz get handled at the entity level (but still put
         //     the service on the stack)
-        eci.getArtifactExecution().push(new ArtifactExecutionInfoImpl(getServiceName(), "AT_SERVICE",
-                    ServiceDefinition.getVerbAuthzActionId(verb)).setParameters(currentParameters),
-                (sd != null && sd.getAuthenticate() == "true"))
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(getServiceName(), "AT_SERVICE",
+                            ServiceDefinition.getVerbAuthzActionId(verb)).setParameters(currentParameters)
+        eci.getArtifactExecution().push(aei, (sd != null && sd.getAuthenticate() == "true"))
 
         // must be done after the artifact execution push so that AEII object to set anonymous authorized is in place
         boolean loggedInAnonymous = false
@@ -209,10 +214,11 @@ class ServiceCallSyncImpl extends ServiceCallImpl implements ServiceCallSync {
                 sfi.getEcfi().countArtifactHit("service", "entity-implicit", getServiceName(), currentParameters,
                         callStartTime, runningTimeMillis, null)
 
-                eci.artifactExecution.pop()
+                eci.artifactExecution.pop(aei)
                 return result
             } else {
                 logger.info("No service with name ${getServiceName()}, isEntityAutoPattern=${isEntityAutoPattern()}, path=${path}, verb=${verb}, noun=${noun}, noun is entity? ${((EntityFacadeImpl) eci.getEntity()).isEntityDefined(noun)}")
+                eci.artifactExecution.pop(aei)
                 throw new ServiceException("Could not find service with name [${getServiceName()}]")
             }
         }
@@ -328,7 +334,7 @@ class ServiceCallSyncImpl extends ServiceCallImpl implements ServiceCallSync {
         }
 
         // all done so pop the artifact info; don't bother making sure this is done on errors/etc like in a finally clause because if there is an error this will help us know how we got there
-        eci.getArtifactExecution().pop()
+        eci.getArtifactExecution().pop(aei)
 
         if (loggedInAnonymous) ((UserFacadeImpl) eci.getUser()).logoutAnonymousOnly()
 
@@ -407,6 +413,7 @@ class ServiceCallSyncImpl extends ServiceCallImpl implements ServiceCallSync {
                         case "update": EntityAutoServiceRunner.updateEntity(sfi, ed, currentParameters, result, null, null); break
                         case "delete": EntityAutoServiceRunner.deleteEntity(sfi, ed, currentParameters); break
                         case "store": EntityAutoServiceRunner.storeEntity(sfi, ed, currentParameters, result, null); break
+                        // NOTE: no need to throw exception for other verbs, checked in advance when looking for valid service name by entity auto pattern
                     }
                 } finally {
                     sfi.registerTxSecaRules(getServiceNameNoHash(), currentParameters, result)

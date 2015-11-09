@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -64,6 +64,14 @@ class UrlResourceReference extends BaseResourceReference {
 
     @Override
     InputStream openStream() { return locationUrl?.openStream() }
+    @Override
+    OutputStream getOutputStream() {
+        if (!isFileProtocol) throw new IllegalArgumentException("Write not supported for resource [${getLocation()}] with protocol [${locationUrl?.protocol}]")
+        // first make sure the directory exists that this is in
+        if (!getFile().parentFile.exists()) getFile().parentFile.mkdirs()
+        OutputStream os = new FileOutputStream(getFile())
+        return os
+    }
 
     @Override
     String getText() { return StupidUtilities.getStreamText(openStream()) }

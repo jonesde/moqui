@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<emecas xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/email-eca-1.5.xsd">
+    <!-- NOTE: see org.moqui.EmailServices.process#EmailEca interface for fields derived from message, all available for conditions too -->
+    <emeca rule-name="SaveEcaEmailMessage">
+        <!-- simple example condition: if message not seen and has a subject save it (note that if EmailServer.storeSkipSeen=Y seen are skipped anyway) -->
+        <condition><expression>fields.subject</expression></condition><!-- commented for easier testing: !flags.seen &amp;&amp; -->
+        <actions><service-call name="org.moqui.impl.EmailServices.save#EcaEmailMessage" in-map="context"/></actions>
+    </emeca>
+</emecas>

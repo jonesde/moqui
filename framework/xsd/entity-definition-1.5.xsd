@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -82,6 +82,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <xs:element minOccurs="0" maxOccurs="unbounded" ref="index"/>
                 <!-- TABLED not to be part of 1.0: <xs:element minOccurs="0" maxOccurs="unbounded" ref="change-set"/> -->
                 <xs:element minOccurs="0" ref="seed-data"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="master"/>
             </xs:sequence>
             <xs:attribute name="entity-name" type="xs:string" use="required"/>
             <xs:attribute name="package-name" type="xs:string" use="required"/>
@@ -143,6 +144,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <xs:element minOccurs="0" maxOccurs="unbounded" ref="relationship"/>
                 <xs:element minOccurs="0" maxOccurs="unbounded" ref="index"/>
                 <xs:element minOccurs="0" ref="seed-data"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="master"/>
             </xs:sequence>
             <xs:attribute name="entity-name" type="xs:string" use="required"/>
             <xs:attribute name="package-name" type="xs:string" use="required"/>
@@ -186,6 +188,11 @@ along with this software (see the LICENSE.md file). If not, see
                     same record, set to a constant, etc. Set during create and update operations, after EECA before
                     rules are run, and only if the field value is null or an empty String.
                 </xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="create-only" type="boolean">
+                <xs:annotation><xs:documentation>If true values are immutable, can only be set on create and not update.
+                    Overrides entity.@create-only value, set to false explicitly to allow update of certain fields on
+                    create-only entities.</xs:documentation></xs:annotation>
             </xs:attribute>
         </xs:complexType>
     </xs:element>
@@ -294,6 +301,35 @@ along with this software (see the LICENSE.md file). If not, see
 
     <xs:element name="seed-data">
         <xs:complexType><xs:sequence><xs:any minOccurs="0" maxOccurs="unbounded" processContents="skip"/></xs:sequence></xs:complexType>
+    </xs:element>
+
+    <xs:element name="master">
+        <xs:annotation><xs:documentation>Define the structure of this entity as a master entity for outgoing messages
+            and definitions for incoming messages, though all relationships are supported in incoming/imported data. Also
+            useful for extended query to get all data associated with a master record.</xs:documentation></xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="detail"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" default="default"><xs:annotation><xs:documentation>
+                A name to distinguish multiple master definitions for an entity. Required when there is more than one
+                master definition for an entity.
+            </xs:documentation></xs:annotation></xs:attribute>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="detail">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="detail"/>
+            </xs:sequence>
+            <xs:attribute name="relationship" type="xs:string" use="required"><xs:annotation><xs:documentation>
+                The relationship linking the master or parent detail to the detail. May be either short-alias or
+                full relationship name (${title}#${related-entity-name} or just related-entity-name if no title).
+            </xs:documentation></xs:annotation></xs:attribute>
+            <xs:attribute name="use-master" type="xs:string"><xs:annotation><xs:documentation>
+                The name of a master definition in the related entity to include all detail under this master.
+            </xs:documentation></xs:annotation></xs:attribute>
+        </xs:complexType>
     </xs:element>
 
     <!-- ================== view-entity ===================== -->

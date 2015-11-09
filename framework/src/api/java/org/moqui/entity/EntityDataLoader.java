@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -88,6 +88,7 @@ public interface EntityDataLoader {
      * @return List of messages about each comparison between data in the file(s) and data in the database.
      */
     List<String> check();
+    long check(List<String> messageList);
 
     /** Load the values into the database(s). */
     long load();

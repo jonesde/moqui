@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -36,6 +36,8 @@ import org.owasp.esapi.reference.DefaultValidator
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import java.nio.charset.Charset
 
 @CompileStatic
 class StupidWebUtilities {
@@ -301,7 +303,7 @@ class StupidWebUtilities {
                 nameValuePairs.add(new BasicNameValuePair(requestEntry.key as String, requestEntry.value as String))
 
             HttpPost httpPost = new HttpPost(location)
-            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs))
+            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, Charset.forName("UTF-8")))
 
             CloseableHttpResponse response = httpClient.execute(httpPost)
             try {

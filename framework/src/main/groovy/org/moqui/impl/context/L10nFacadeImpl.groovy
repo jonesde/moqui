@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -63,15 +63,34 @@ public class L10nFacadeImpl implements L10nFacade {
         String lmsg = l10nMessage.get(cacheKey)
         if (lmsg != null) return lmsg
 
-        EntityFind find = ecfi.getEntityFacade().find("moqui.basic.LocalizedMessage")
-        find.condition(["original":original, "locale":localeString] as Map<String, Object>).useCache(true)
-        EntityValue localizedMessage = find.one()
-        if (!localizedMessage && localeString.contains('_')) {
-            localizedMessage = find.condition("locale", localeString.substring(0, localeString.indexOf('_'))).one()
-        }
-        if (!localizedMessage) localizedMessage = find.condition("locale", "default").one()
+        String defaultValue = original
+        int localeUnderscoreIndex = localeString.indexOf('_')
 
-        String result = localizedMessage ? localizedMessage.localized : original
+        EntityFind find = ecfi.getEntityFacade().find("moqui.basic.LocalizedMessage")
+                .condition(["original":original, "locale":localeString] as Map<String, Object>).useCache(true)
+        EntityValue localizedMessage = find.one()
+        if (!localizedMessage && localeUnderscoreIndex > 0)
+            localizedMessage = find.condition("locale", localeString.substring(0, localeUnderscoreIndex)).one()
+        if (!localizedMessage)
+            localizedMessage = find.condition("locale", "default").one()
+
+        // if original has a hash and we still don't have a localizedMessage then use what precedes the hash and try again
+        if (!localizedMessage) {
+            int indexOfCloseCurly = original.lastIndexOf('}')
+            int indexOfHash = original.lastIndexOf('##')
+            if (indexOfHash > 0 && indexOfHash > indexOfCloseCurly) {
+                defaultValue = original.substring(0, indexOfHash)
+                EntityFind findHash = ecfi.getEntityFacade().find("moqui.basic.LocalizedMessage")
+                        .condition(["original":defaultValue, "locale":localeString] as Map<String, Object>).useCache(true)
+                localizedMessage = findHash.one()
+                if (!localizedMessage && localeUnderscoreIndex > 0)
+                    localizedMessage = findHash.condition("locale", localeString.substring(0, localeUnderscoreIndex)).one()
+                if (!localizedMessage)
+                    localizedMessage = findHash.condition("locale", "default").one()
+            }
+        }
+
+        String result = localizedMessage != null ? localizedMessage.localized : defaultValue
         l10nMessage.put(cacheKey, result)
         return result
     }

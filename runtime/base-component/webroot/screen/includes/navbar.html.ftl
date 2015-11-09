@@ -155,6 +155,7 @@
         </a>
         <form class="main-search">
             <div class="input-group">
+                <input type="hidden" name="moquiSessionToken" value="${(ec.web.sessionToken)!}">
                 <input type="text" class="input-small form-control" placeholder="Live Search ...">
                 <span class="input-group-btn">
                     <button class="btn btn-primary btn-sm text-muted" type="button"><i class="fa fa-search"></i></button>

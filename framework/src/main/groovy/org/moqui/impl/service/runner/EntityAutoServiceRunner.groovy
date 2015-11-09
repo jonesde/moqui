@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -49,7 +49,7 @@ public class EntityAutoServiceRunner implements ServiceRunner {
         // check the verb and noun
         if (!sd.verb || !verbSet.contains(sd.verb))
             throw new ServiceException("In service [${sd.serviceName}] the verb must be one of ${verbSet} for entity-auto type services.")
-        if (!sd.noun)  throw new ServiceException("In service [${sd.serviceName}] you must specify a noun for entity-auto engine")
+        if (!sd.noun)  throw new ServiceException("In service [${sd.serviceName}] you must specify a noun for entity-auto service calls")
 
         EntityDefinition ed = sfi.ecfi.entityFacade.getEntityDefinition(sd.noun)
         if (!ed) throw new ServiceException("In service [${sd.serviceName}] the specified noun [${sd.noun}] is not a valid entity name")
@@ -238,7 +238,8 @@ public class EntityAutoServiceRunner implements ServiceRunner {
                 continue
             }
 
-            if (relParmObj instanceof Map) {
+            boolean isEntityValue = relParmObj instanceof EntityValue
+            if (relParmObj instanceof Map && !isEntityValue) {
                 Map relParmMap = (Map) relParmObj
                 Map relResults = [:]
                 // add in all of the main entity's primary key fields, this is necessary for auto-generated, and to
@@ -262,7 +263,11 @@ public class EntityAutoServiceRunner implements ServiceRunner {
                 }
                 tempResult.put(entryName, relResultList)
             } else {
-                logger.warn("In entity auto create for entity ${ed.getFullEntityName()} found list for sub-object ${entryName} which is not a Map or List: ${relParmObj}")
+                if (isEntityValue) {
+                    if (logger.isTraceEnabled()) logger.trace("In entity auto create for entity ${ed.getFullEntityName()} found sub-object ${entryName} which is not a Map or List: ${relParmObj}")
+                } else {
+                    logger.warn("In entity auto create for entity ${ed.getFullEntityName()} found sub-object ${entryName} which is not a Map or List: ${relParmObj}")
+                }
             }
         }
 
@@ -427,7 +432,8 @@ public class EntityAutoServiceRunner implements ServiceRunner {
                 continue
             }
 
-            if (relParmObj instanceof Map) {
+            boolean isEntityValue = relParmObj instanceof EntityValue
+            if (relParmObj instanceof Map && !isEntityValue) {
                 Map relParmMap = (Map) relParmObj
                 Map relResults = [:]
                 storeRecursive(ecfi, subEd, relParmMap, relResults, null, pkMap)
@@ -446,7 +452,11 @@ public class EntityAutoServiceRunner implements ServiceRunner {
                 }
                 result.put(entryName, relResultList)
             } else {
-                logger.warn("In entity auto create for entity ${ed.getFullEntityName()} found list for sub-object ${entryName} which is not a Map or List: ${relParmObj}")
+                if (isEntityValue) {
+                    if (logger.isTraceEnabled()) logger.trace("In entity auto store for entity ${ed.getFullEntityName()} found sub-object ${entryName} which is not a Map or List: ${relParmObj}")
+                } else {
+                    logger.warn("In entity auto store for entity ${ed.getFullEntityName()} found sub-object ${entryName} which is not a Map or List: ${relParmObj}")
+                }
             }
         }
     }

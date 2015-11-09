@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -277,6 +277,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <xs:annotation><xs:documentation>Declare that this transition does only read operations to skip the
                     check for insecure parameters.</xs:documentation></xs:annotation>
             </xs:attribute>
+            <xs:attribute name="require-session-token" default="true" type="boolean"><xs:annotation><xs:documentation>
+                If not false (default true) moquiSessionToken (from ec.web.sessionToken) must be passed to this
+                transition for all requests in a session after the first.</xs:documentation></xs:annotation></xs:attribute>
         </xs:complexType>
     </xs:element>
     <xs:element name="path-parameter">

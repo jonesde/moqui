@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -55,6 +55,9 @@ class StupidUtilities {
             if (theClass == Boolean.class && value instanceof CharSequence && value) {
                 // for non-empty String to Boolean don't use normal not-empty rules, look for "true", "false", etc
                 return Boolean.valueOf((String) value)
+            } else if (theClass == java.sql.Date.class && value instanceof Timestamp) {
+                // Groovy doesn't handle this one, but easy conversion
+                return new java.sql.Date(((Timestamp) value).getTime())
             } else {
                 // let groovy do the work
                 Object newVal = value.asType(theClass)
@@ -307,15 +310,15 @@ class StupidUtilities {
         theList.add(value)
     }
     static boolean addToSetInMap(Object key, Object value, Map theMap) {
-        if (theMap == null) return
+        if (theMap == null) return false
         Set theSet = (Set) theMap.get(key)
-        if (theSet == null) { theSet = new HashSet(); theMap.put(key, theSet) }
+        if (theSet == null) { theSet = new LinkedHashSet(); theMap.put(key, theSet) }
         return theSet.add(value)
     }
     static void addToMapInMap(Object keyOuter, Object keyInner, Object value, Map theMap) {
         if (theMap == null) return
         Map innerMap = (Map) theMap.get(keyOuter)
-        if (innerMap == null) { innerMap = new HashMap(); theMap.put(keyOuter, innerMap) }
+        if (innerMap == null) { innerMap = new LinkedHashMap(); theMap.put(keyOuter, innerMap) }
         innerMap.put(keyInner, value)
     }
     static void addToBigDecimalInMap(Object key, BigDecimal value, Map theMap) {
@@ -456,25 +459,24 @@ class StupidUtilities {
     }
 
     static String encodeForXmlAttribute(String original) { return encodeForXmlAttribute(original, false) }
-
     static String encodeForXmlAttribute(String original, boolean addZeroWidthSpaces) {
         StringBuilder newValue = new StringBuilder(original)
         for (int i = 0; i < newValue.length(); i++) {
             char curChar = newValue.charAt(i)
 
             switch (curChar) {
-                case '\'': newValue.replace(i, i+1, "&apos;"); i+=5; break;
-                case '"' : newValue.replace(i, i+1, "&quot;"); i+=5; break;
-                case '&' : newValue.replace(i, i+1, "&amp;"); i+=4; break;
-                case '<' : newValue.replace(i, i+1, "&lt;"); i+=3; break;
-                case '>' : newValue.replace(i, i+1, "&gt;"); i+=3; break;
-                case 0x5 : newValue.replace(i, i+1, "..."); break;
-                case 0x12: newValue.replace(i, i+1, "&apos;"); i+=5; break;
-                case 0x13: newValue.replace(i, i+1, "&quot;"); i+=5; break; // left
-                case 0x14: newValue.replace(i, i+1, "&quot;"); i+=5; break; // right
-                case 0x16: newValue.replace(i, i+1, "-"); break; // big dash
-                case 0x17: newValue.replace(i, i+1, "-"); break;
-                case 0x19: newValue.replace(i, i+1, "tm"); break;
+                case '\'': newValue.replace(i, i+1I, "&apos;"); i+=5I; break;
+                case '"' : newValue.replace(i, i+1I, "&quot;"); i+=5I; break;
+                case '&' : newValue.replace(i, i+1I, "&amp;"); i+=4I; break;
+                case '<' : newValue.replace(i, i+1I, "&lt;"); i+=3I; break;
+                case '>' : newValue.replace(i, i+1I, "&gt;"); i+=3I; break;
+                case 0x5 : newValue.replace(i, i+1I, "..."); i+=2I; break;
+                case 0x12: newValue.replace(i, i+1I, "&apos;"); i+=5I; break;
+                case 0x13: newValue.replace(i, i+1I, "&quot;"); i+=5I; break; // left
+                case 0x14: newValue.replace(i, i+1I, "&quot;"); i+=5I; break; // right
+                case 0x16: newValue.replace(i, i+1I, "-"); break; // big dash
+                case 0x17: newValue.replace(i, i+1I, "-"); break;
+                case 0x19: newValue.replace(i, i+1I, "tm"); i++; break;
                 default:
                     if (curChar < 0x20 && curChar != 0x9 && curChar != 0xA && curChar != 0xD) {
                         // the only valid values < 0x20 are 0x9 (tab), 0xA (newline), 0xD (carriage return)
@@ -483,13 +485,38 @@ class StupidUtilities {
                     } else if (curChar > 0x7F) {
                         // Replace each char which is out of the ASCII range with a XML entity
                         String s = "&#" + (((int) curChar.charValue()) as String) + ";"
-                        newValue.replace(i, i+1, s)
-                        i += s.length() - 1
+                        newValue.replace(i, i+1I, s)
+                        i += s.length() - 1I
                     } else if (addZeroWidthSpaces) {
                         newValue.insert(i, "&#8203;")
-                        i += 7
+                        i += 7I
                     }
             }
+        }
+        return newValue.toString()
+    }
+    static final Map<String, String> xmlEntityMap = [apos:'\'', quot:'"', amp:'&', lt:'<', gt:'>']
+    static String decodeFromXml(String original) {
+        if (!original) return original
+        int pos = original.indexOf('&')
+        if (pos == -1) return original
+
+        StringBuilder newValue = new StringBuilder(original)
+        while (pos < newValue.length() && pos >= 0) {
+            int scIndex = newValue.indexOf(';', pos + 1I)
+            if (scIndex == -1) break
+            String entityName = newValue.substring(pos + 1I, scIndex)
+            String replaceChar
+            if (entityName.charAt(0) == ('#' as char)) {
+                String decStr = entityName.substring(1)
+                int decInt = Integer.valueOf(decStr)
+                replaceChar = new String(Character.toChars(decInt))
+            } else {
+                replaceChar = xmlEntityMap.get(entityName)
+            }
+            // logger.warn("========= pos=${pos}, entityName=${entityName}, replaceChar=${replaceChar}")
+            if (replaceChar) newValue.replace(pos, scIndex + 1I, replaceChar)
+            pos = newValue.indexOf('&', pos + 1I)
         }
         return newValue.toString()
     }
@@ -504,6 +531,15 @@ class StupidUtilities {
         return newValue.toString()
     }
 
+    static final String encodeAsciiFilename(String filename) {
+        try {
+            URI uri = new URI(null, null, filename, null);
+            return uri.toASCIIString();
+        } catch (URISyntaxException e) {
+            return filename;
+        }
+    }
+
     static String toStringCleanBom(byte[] bytes) {
         // NOTE: this only supports UTF-8 for now!
         if (!bytes) return ""
@@ -513,6 +549,17 @@ class StupidUtilities {
         } else {
             return new String(bytes, "UTF-8")
         }
+    }
+
+    static final String escapeElasticQueryString(CharSequence queryString) {
+        int length = queryString.length()
+        StringBuilder sb = new StringBuilder(length * 2)
+        for (int i = 0; i < length; i++) {
+            char c = queryString.charAt(i)
+            if ("+-=&|><!(){}[]^\"~*?:\\/".indexOf((int) c.charValue()) != -1) sb.append("\\")
+            sb.append(c)
+        }
+        return sb.toString();
     }
 
     static String paddedNumber(long number, Integer desiredLength) {
@@ -629,7 +676,7 @@ class StupidUtilities {
      * @param useAnd true if you want to use the word 'and' in the text (eleven thousand and thirteen)
      * @return
      */
-    public static final String numberToWords(long value, boolean useAnd) {
+    static final String numberToWords(long value, boolean useAnd) {
         if (value == 0L) return SUBTWENTY[0]
 
         // break the value down in to sets of three digits (thousands)
@@ -660,7 +707,7 @@ class StupidUtilities {
         return sb.toString()
     }
 
-    public static final String numberToWordsWithDecimal(BigDecimal value) {
+    static final String numberToWordsWithDecimal(BigDecimal value) {
         String integerText = numberToWords(value.longValue(), false)
         String decimalText = value.setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString()
         decimalText = decimalText.substring(decimalText.indexOf('.') + 1)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -56,6 +56,7 @@ along with this software (see the LICENSE.md file). If not, see
             <script>
                 import org.moqui.context.ExecutionContext
                 import org.moqui.entity.EntityDataLoader
+                import org.moqui.impl.context.ArtifactExecutionInfoImpl
 
                 ExecutionContext ec = context.ec
 
@@ -67,7 +68,8 @@ along with this software (see the LICENSE.md file). If not, see
                 // auth anonymous user, turn off authz for data loading
                 ec.getUser().loginAnonymousIfNoUser()
                 ec.getArtifactExecution().disableAuthz()
-                ec.getArtifactExecution().push("loadData", "AT_OTHER", "AUTHZA_ALL", false)
+                ArtifactExecutionInfoImpl aei = new ArtifactExecutionInfoImpl("loadData", "AT_OTHER", "AUTHZA_ALL")
+                ec.getArtifactExecution().push(aei, false)
                 ec.getArtifactExecution().setAnonymousAuthorizedAll()
 
                 // load data
@@ -90,7 +92,7 @@ along with this software (see the LICENSE.md file). If not, see
             <script>
                 // turn authz back on, etc
                 ec.getUser().logoutAnonymousOnly()
-                ec.getArtifactExecution().pop()
+                ec.getArtifactExecution().pop(aei)
                 ec.getArtifactExecution().enableAuthz()
 
                 // login previous user, switch back to previous tenantId

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -15,7 +15,7 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-1.5.xsd">
 
     <widget-template name="enumDropDown">
-        <drop-down allow-empty="${allowEmpty ?: 'false'}" no-current-selected-key="${noCurrentSelectedKey?:''}" style="${style?:'chosen-wide'}">
+        <drop-down allow-empty="${allowEmpty ?: 'false'}" no-current-selected-key="${noCurrentSelectedKey?:''}" style="${style?:'chosen-wide'}" allow-multiple="${allowMultiple ?: 'false'}">
             <entity-options key="${enumId}" text="${description}">
                 <entity-find entity-name="moqui.basic.Enumeration">
                     <econdition field-name="enumTypeId"/>
@@ -25,7 +25,7 @@ along with this software (see the LICENSE.md file). If not, see
         </drop-down>
     </widget-template>
     <widget-template name="enumWithParentDropDown">
-        <drop-down allow-empty="${allowEmpty ?: 'false'}" no-current-selected-key="${noCurrentSelectedKey?:''}" style="${style?:'chosen-wide'}">
+        <drop-down allow-empty="${allowEmpty ?: 'false'}" no-current-selected-key="${noCurrentSelectedKey?:''}" style="${style?:'chosen-wide'}" allow-multiple="${allowMultiple ?: 'false'}">
             <entity-options key="${enumId}" text="${description}">
                 <entity-find entity-name="moqui.basic.Enumeration">
                     <econdition field-name="enumTypeId"/>
@@ -37,7 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
     </widget-template>
 
     <widget-template name="statusDropDown">
-        <drop-down allow-empty="${allowEmpty ?: 'false'}" no-current-selected-key="${noCurrentSelectedKey?:''}">
+        <drop-down allow-empty="${allowEmpty ?: 'false'}" no-current-selected-key="${noCurrentSelectedKey?:''}" style="${style?:''}" allow-multiple="${allowMultiple ?: 'false'}">
             <entity-options key="${statusId}" text="${description}">
                 <entity-find entity-name="moqui.basic.StatusItem">
                     <econdition field-name="statusTypeId"/>

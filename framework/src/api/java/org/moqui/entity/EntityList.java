@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -113,7 +113,8 @@ public interface EntityList extends List<EntityValue>, Iterable<EntityValue>, Cl
 
     /** Get a list of Map (not EntityValue) objects. If dependentLevels is greater than zero includes nested dependents
      * in the Map for each value. */
-    List<Map> getPlainValueList(int dependentLevels);
+    List<Map<String, Object>> getPlainValueList(int dependentLevels);
+    List<Map<String, Object>> getMasterValueList(String name);
 
     EntityList cloneList();
 

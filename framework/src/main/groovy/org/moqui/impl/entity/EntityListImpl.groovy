@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -210,11 +210,17 @@ class EntityListImpl implements EntityList {
     Iterator<EntityValue> iterator() { return this.valueList.iterator() }
 
     @Override
-    List<Map> getPlainValueList(int dependentLevels) {
-        List plainRelList = new ArrayList(valueList.size())
-        for (EntityValue ev in valueList)
-            plainRelList.add(((EntityValueBase) ev).getPlainValueMap(dependentLevels))
+    List<Map<String, Object>> getPlainValueList(int dependentLevels) {
+        List<Map<String, Object>> plainRelList = new ArrayList(valueList.size())
+        for (EntityValue ev in valueList) plainRelList.add(((EntityValueBase) ev).getPlainValueMap(dependentLevels))
         return plainRelList
+    }
+
+    @Override
+    List<Map<String, Object>> getMasterValueList(String name) {
+        List<Map<String, Object>> masterRelList = new ArrayList(valueList.size())
+        for (EntityValue ev in valueList) masterRelList.add(((EntityValueBase) ev).getMasterValueMap(name))
+        return masterRelList
     }
 
     @Override
@@ -375,7 +381,8 @@ class EntityListImpl implements EntityList {
         Iterator<EntityValue> iterator() { return emptyIterator }
         Object clone() { return this.cloneList() }
         int writeXmlText(Writer writer, String prefix, int dependentLevels) { return 0 }
-        List<Map> getPlainValueList(int dependentLevels) { return [] }
+        List<Map<String, Object>> getPlainValueList(int dependentLevels) { return [] }
+        List<Map<String, Object>> getMasterValueList(String name) { return [] }
 
         EntityList cloneList() { return this }
         void setFromCache() { }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -40,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.screen.ScreenThemeResource screenThemeId="DEFAULT" sequenceNum="102" resourceTypeEnumId="STRT_BODY_CLASS"
             resourceValue="bg-light lter"/>
     <moqui.screen.ScreenThemeResource screenThemeId="DEFAULT" sequenceNum="200" resourceTypeEnumId="STRT_FOOTER_ITEM">
-        <resourceValue><![CDATA[<h6><a href="http://www.moqui.org/" target="_blank">${ec.l10n.localize('Built on Moqui Framework 1.5.3')}</a></h6>]]></resourceValue>
+        <resourceValue><![CDATA[<h6><a href="http://www.moqui.org/" target="_blank">${ec.l10n.localize('Built on Moqui Framework 1.5.4')}</a></h6>]]></resourceValue>
     </moqui.screen.ScreenThemeResource>
     <moqui.screen.ScreenThemeResource screenThemeId="DEFAULT" sequenceNum="201" resourceTypeEnumId="STRT_FOOTER_ITEM">
         <resourceValue><![CDATA[<h6><a href="/apps/ScreenTree">${ec.l10n.localize('Site Map')}</a></h6>]]></resourceValue>

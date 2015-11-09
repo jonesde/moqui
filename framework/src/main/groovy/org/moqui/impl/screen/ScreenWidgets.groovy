@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -15,7 +15,7 @@ package org.moqui.impl.screen
 import groovy.transform.CompileStatic
 import org.slf4j.LoggerFactory
 import org.slf4j.Logger
-import org.moqui.impl.FtlNodeWrapper
+import org.moqui.impl.util.FtlNodeWrapper
 import org.moqui.context.ContextStack
 
 @CompileStatic

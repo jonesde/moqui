@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -93,15 +93,16 @@ along with this software (see the LICENSE.md file). If not, see
             dependents="N"/>
 
     <!-- ========== SystemMessage Example ========== -->
-    <!-- NOTE: empty receiveServiceName to use the default, org.moqui.impl.SystemMessageServices.receive#SystemMessage,
+    <!-- NOTE: empty receiveServiceName to use the default, org.moqui.impl.SystemMessageServices.receive#IncomingSystemMessage,
         in the send#SystemMessageJsonRpc service -->
     <moqui.service.message.SystemMessageType systemMessageTypeId="ExampleMessage" description="Example Message"
-            produceServiceName="org.moqui.example.ExampleServices.send#ExampleMessage"
+            produceServiceName="org.moqui.example.ExampleServices.produce#ExampleMessage"
             consumeServiceName="org.moqui.example.ExampleServices.consume#ExampleMessage"
             sendServiceName="org.moqui.impl.SystemMessageServices.send#SystemMessageJsonRpc"
             receiveServiceName=""/>
-    <moqui.service.message.SystemMessageRemote systemMessageRemoteId="Example1Local" sendUrl="http://localhost:8080/rpc/json"
+    <moqui.service.message.SystemMessageRemote systemMessageRemoteId="Example1Local" description="Example Local"
+            sendUrl="http://localhost:8080/rpc/json"
             username="john.doe" password="moqui"/><!-- to try a different tenant: tenantId="EXAMPLE1" -->
-    <moqui.service.message.SystemMessageRemote systemMessageRemoteId="Example1Direct"
+    <moqui.service.message.SystemMessageRemote systemMessageRemoteId="Example1Direct" description="Example Direct"
             sendServiceName="org.moqui.impl.SystemMessageServices.send#SystemMessageDirectLocal"/>
 </entity-facade-xml>

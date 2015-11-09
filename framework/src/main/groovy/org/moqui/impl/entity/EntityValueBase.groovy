@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -17,6 +17,7 @@ import org.apache.commons.codec.binary.Base64
 import org.apache.commons.collections.set.ListOrderedSet
 
 import org.moqui.Moqui
+import org.moqui.context.ArtifactExecutionInfo
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityException
@@ -140,6 +141,7 @@ abstract class EntityValueBase implements EntityValue {
         if (fieldInfo == null) {
             // if this is not a valid field name but is a valid relationship name, do a getRelated or getRelatedOne to return an EntityList or an EntityValue
             RelationshipInfo relInfo = ed.getRelationshipInfo(name)
+            // logger.warn("====== get related relInfo: ${relInfo}")
             if (relInfo!= null) {
                 if (relInfo.isTypeOne) {
                     return this.findRelatedOne(name, null, null)
@@ -638,12 +640,13 @@ abstract class EntityValueBase implements EntityValue {
     }
 
     @Override
-    void checkAgainstDatabase(List messages) {
+    long checkAgainstDatabase(List messages) {
+        long fieldsChecked = 0
         try {
             EntityValue dbValue = this.cloneValue()
             if (!dbValue.refresh()) {
                 messages.add("Entity [${getEntityName()}] record not found for primary key [${getPrimaryKeys()}]")
-                return
+                return 0
             }
 
             for (String nonpkFieldName in this.getEntityDefinition().getFieldNames(false, true, true)) {
@@ -664,6 +667,8 @@ abstract class EntityValueBase implements EntityValue {
                     }
                     if (!areSame) messages.add("Field [${getEntityName()}.${nonpkFieldName}] did not match; check (file) value [${checkFieldValue}], db value [${dbFieldValue}] for primary key [${getPrimaryKeys()}]")
                 }
+
+                fieldsChecked++
             }
         } catch (EntityException e) {
             throw e
@@ -672,6 +677,7 @@ abstract class EntityValueBase implements EntityValue {
             messages.add(errMsg)
             logger.error(errMsg, t)
         }
+        return fieldsChecked
     }
 
     @Override
@@ -806,7 +812,11 @@ abstract class EntityValueBase implements EntityValue {
             for (RelationshipInfo relInfo in relInfoList) {
                 String relationshipName = relInfo.relationshipName
                 String entryName = relInfo.shortAlias ?: relationshipName
-                if (relInfo.type == "many") {
+                if (relInfo.isTypeOne) {
+                    EntityValue relEv = findRelatedOne(relationshipName, null, false)
+                    if (relEv != null) vMap.put(entryName, ((EntityValueBase) relEv)
+                            .internalPlainValueMap(dependentLevels - 1, curPkFields))
+                } else {
                     EntityList relList = findRelated(relationshipName, null, null, null, false)
                     if (relList) {
                         List plainRelList = []
@@ -815,16 +825,55 @@ abstract class EntityValueBase implements EntityValue {
                         }
                         vMap.put(entryName, plainRelList)
                     }
-                } else {
-                    EntityValue relEv = findRelatedOne(relationshipName, null, false)
-                    if (relEv != null) vMap.put(entryName, ((EntityValueBase) relEv)
-                            .internalPlainValueMap(dependentLevels - 1, curPkFields))
                 }
             }
         }
 
         return vMap
     }
+
+    @Override
+    Map<String, Object> getMasterValueMap(String name) {
+        EntityDefinition.MasterDefinition masterDefinition = getEntityDefinition().getMasterDefinition(name)
+        if (masterDefinition == null) throw new EntityException("No master definition found for name [${name}] in entity [${getEntityDefinition().getFullEntityName()}]")
+        return internalMasterValueMap(masterDefinition.detailList, null)
+    }
+
+    protected Map<String, Object> internalMasterValueMap(List<EntityDefinition.MasterDetail> detailList, Set<String> parentPkFields) {
+        Map<String, Object> vMap = StupidUtilities.removeNullsFromMap(new HashMap(valueMap))
+        if (parentPkFields != null) for (String pkField in parentPkFields) vMap.remove(pkField)
+        EntityDefinition ed = getEntityDefinition()
+        vMap.put('_entity', ed.getShortAlias() ?: ed.getFullEntityName())
+
+        if (detailList) {
+            Set<String> curPkFields = new HashSet(ed.getPkFieldNames())
+            // keep track of all parent PK field names, even not part of this entity's PK, they will be inherited when read
+            if (parentPkFields != null) curPkFields.addAll(parentPkFields)
+
+            for (EntityDefinition.MasterDetail detail in detailList) {
+                RelationshipInfo relInfo = detail.relInfo
+                String relationshipName = relInfo.relationshipName
+                String entryName = relInfo.shortAlias ?: relationshipName
+                if (relInfo.isTypeOne) {
+                    EntityValue relEv = findRelatedOne(relationshipName, null, false)
+                    if (relEv != null) vMap.put(entryName, ((EntityValueBase) relEv)
+                            .internalMasterValueMap(detail.detailList, curPkFields))
+                } else {
+                    EntityList relList = findRelated(relationshipName, null, null, null, false)
+                    if (relList) {
+                        List plainRelList = []
+                        for (EntityValue relEv in relList) {
+                            plainRelList.add(((EntityValueBase) relEv).internalMasterValueMap(detail.detailList, curPkFields))
+                        }
+                        vMap.put(entryName, plainRelList)
+                    }
+                }
+            }
+        }
+
+        return vMap
+    }
+
 
     // ========== Map Interface Methods ==========
 
@@ -984,9 +1033,8 @@ abstract class EntityValueBase implements EntityValue {
         ExecutionContext ec = ecfi.getExecutionContext()
 
         String authorizeSkip = ed.entityNode.attribute('authorize-skip')
-        ec.getArtifactExecution().push(
-                new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_CREATE").setParameters(valueMap),
-                (authorizeSkip != "true" && !authorizeSkip?.contains("create")))
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_CREATE").setParameters(valueMap)
+        ec.getArtifactExecution().push(aei, (authorizeSkip != "true" && !authorizeSkip?.contains("create")))
 
         getEntityFacadeImpl().runEecaRules(ed.getFullEntityName(), this, "create", true)
 
@@ -1023,7 +1071,7 @@ abstract class EntityValueBase implements EntityValue {
         ecfi.countArtifactHit("entity", "create", ed.getFullEntityName(), this.getPrimaryKeys(), startTime,
                 (System.nanoTime() - startTimeNanos)/1E6, 1L)
         // pop the ArtifactExecutionInfo to clean it up
-        ec.getArtifactExecution().pop()
+        ec.getArtifactExecution().pop(aei)
 
         return this
     }
@@ -1079,9 +1127,8 @@ abstract class EntityValueBase implements EntityValue {
         ExecutionContext ec = ecfi.getExecutionContext()
 
         String authorizeSkip = ed.entityNode.attribute('authorize-skip')
-        ec.getArtifactExecution().push(
-                new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_UPDATE").setParameters(valueMap),
-                    authorizeSkip != "true")
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_UPDATE").setParameters(valueMap)
+        ec.getArtifactExecution().push(aei, authorizeSkip != "true")
 
         getEntityFacadeImpl().runEecaRules(ed.getFullEntityName(), this, "update", true)
 
@@ -1104,25 +1151,33 @@ abstract class EntityValueBase implements EntityValue {
 
         ArrayList<String> pkFieldList = ed.getPkFieldNames()
         ArrayList<String> nonPkFieldList = new ArrayList<String>()
-        ArrayList<String> fieldNameList = ed.getNonPkFieldNames()
-        int size = fieldNameList.size()
+        ArrayList<EntityDefinition.FieldInfo> fieldInfoList = ed.getNonPkFieldInfoList()
+        List<String> changedCreateOnlyFields = []
+        int size = fieldInfoList.size()
         for (int i = 0; i < size; i++) {
-            String fieldName = fieldNameList.get(i)
-            if (valueMap.containsKey(fieldName) && (!oldValues.containsKey(fieldName) || valueMap.get(fieldName) != oldValues.get(fieldName)))
+            EntityDefinition.FieldInfo fieldInfo = fieldInfoList.get(i)
+            String fieldName = fieldInfo.name
+            if (valueMap.containsKey(fieldName) && (!oldValues.containsKey(fieldName) || valueMap.get(fieldName) != oldValues.get(fieldName))) {
                 nonPkFieldList.add(fieldName)
+                if (fieldInfo.createOnly) changedCreateOnlyFields.add(fieldName)
+            }
         }
         // if (ed.getEntityName() == "foo") logger.warn("================ evb.update() ${getEntityName()} nonPkFieldList=${nonPkFieldList};\nvalueMap=${valueMap};\noldValues=${oldValues}")
         if (!nonPkFieldList) {
             if (logger.isTraceEnabled()) logger.trace((String) "Not doing update on entity with no populated non-PK fields; entity=" + this.toString())
+            ec.getArtifactExecution().pop(aei)
             return this
         }
 
         // do this after the empty nonPkFieldList check so that if nothing has changed then ignore the attempt to update
-        if (ed.createOnly()) throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be updated.")
+        if (changedCreateOnlyFields.size() > 0) {
+            ec.getArtifactExecution().pop(aei)
+            throw new EntityException("Cannot update create-only (immutable) fields ${changedCreateOnlyFields} on entity [${getEntityName()}]")
+        }
 
-        if (ed.optimisticLock()) {
-            if (getTimestamp("lastUpdatedStamp") != refreshedValue.getTimestamp("lastUpdatedStamp"))
-                throw new EntityException("This record was updated by someone else at [${getTimestamp("lastUpdatedStamp")}] which was after the version you loaded at [${refreshedValue.getTimestamp("lastUpdatedStamp")}]. Not updating to avoid overwriting data.")
+        if (ed.optimisticLock() && getTimestamp("lastUpdatedStamp") != refreshedValue.getTimestamp("lastUpdatedStamp")) {
+            ec.getArtifactExecution().pop(aei)
+            throw new EntityException("This record was updated by someone else at [${getTimestamp("lastUpdatedStamp")}] which was after the version you loaded at [${refreshedValue.getTimestamp("lastUpdatedStamp")}]. Not updating to avoid overwriting data.")
         }
 
         Long lastUpdatedLong = ecfi.getTransactionFacade().getCurrentTransactionStartTime() ?: System.currentTimeMillis()
@@ -1147,7 +1202,7 @@ abstract class EntityValueBase implements EntityValue {
         ecfi.countArtifactHit("entity", "update", ed.getFullEntityName(), this.getPrimaryKeys(), startTime,
                 (System.nanoTime() - startTimeNanos)/1E6, 1L)
         // pop the ArtifactExecutionInfo to clean it up
-        ec.getArtifactExecution().pop()
+        ec.getArtifactExecution().pop(aei)
 
         return this
     }
@@ -1237,9 +1292,8 @@ abstract class EntityValueBase implements EntityValue {
         if (ed.createOnly()) throw new EntityException("Entity [${getEntityName()}] is create-only (immutable), cannot be deleted.")
 
         String authorizeSkip = ed.entityNode.attribute('authorize-skip')
-        ec.getArtifactExecution().push(
-                new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_DELETE").setParameters(valueMap),
-                    authorizeSkip != "true")
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_DELETE").setParameters(valueMap)
+        ec.getArtifactExecution().push(aei, authorizeSkip != "true")
 
         getEntityFacadeImpl().runEecaRules(ed.getFullEntityName(), this, "delete", true)
         // this needs to be called before the actual update so we know which fields are modified
@@ -1260,7 +1314,7 @@ abstract class EntityValueBase implements EntityValue {
         ecfi.countArtifactHit("entity", "delete", ed.getFullEntityName(), this.getPrimaryKeys(), startTime,
                 (System.nanoTime() - startTimeNanos)/1E6, 1L)
         // pop the ArtifactExecutionInfo to clean it up
-        ec.getArtifactExecution().pop()
+        ec.getArtifactExecution().pop(aei)
 
         return this
     }
@@ -1300,10 +1354,9 @@ abstract class EntityValueBase implements EntityValue {
         ExecutionContext ec = ecfi.getExecutionContext()
 
         String authorizeSkip = ed.entityNode.attribute('authorize-skip')
-        ec.getArtifactExecution().push(
-                new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW")
-                        .setActionDetail("refresh").setParameters(valueMap),
-                authorizeSkip != "true")
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW")
+                                .setActionDetail("refresh").setParameters(valueMap)
+        ec.getArtifactExecution().push(aei, authorizeSkip != "true")
 
         getEntityFacadeImpl().runEecaRules(ed.getFullEntityName(), this, "find-one", true)
 
@@ -1311,6 +1364,7 @@ abstract class EntityValueBase implements EntityValue {
         if (pkFieldList.size() == 0) {
             // throw new EntityException("Entity ${getEntityName()} has no primary key fields, cannot do refresh.")
             if (logger.isTraceEnabled()) logger.trace("Entity ${getEntityName()} has no primary key fields, cannot do refresh.")
+            ec.getArtifactExecution().pop(aei)
             return false
         }
 
@@ -1330,7 +1384,7 @@ abstract class EntityValueBase implements EntityValue {
         ecfi.countArtifactHit("entity", "refresh", ed.getFullEntityName(), this.getPrimaryKeys(), startTime,
                 (System.nanoTime() - startTimeNanos)/1E6, retVal ? 1L : 0L)
         // pop the ArtifactExecutionInfo to clean it up
-        ec.getArtifactExecution().pop()
+        ec.getArtifactExecution().pop(aei)
 
         return retVal
     }

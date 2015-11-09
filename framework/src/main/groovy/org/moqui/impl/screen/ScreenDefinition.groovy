@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -16,6 +16,7 @@ import groovy.transform.CompileStatic
 import groovy.util.slurpersupport.GPathResult
 import org.codehaus.groovy.runtime.InvokerHelper
 import org.moqui.BaseException
+import org.moqui.context.ArtifactExecutionInfo
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
@@ -407,8 +408,8 @@ class ScreenDefinition {
     void render(ScreenRenderImpl sri, boolean isTargetScreen) {
         // NOTE: don't require authz if the screen doesn't require auth
         String requireAuthentication = (String) screenNode.attribute('require-authentication')
-        sri.ec.artifactExecution.push(new ArtifactExecutionInfoImpl(location, "AT_XML_SCREEN", "AUTHZA_VIEW"),
-                isTargetScreen ? (!requireAuthentication || requireAuthentication == "true") : false)
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(location, "AT_XML_SCREEN", "AUTHZA_VIEW")
+        sri.ec.artifactExecution.push(aei, isTargetScreen ? (!requireAuthentication || requireAuthentication == "true") : false)
 
         boolean loggedInAnonymous = false
         if (requireAuthentication == "anonymous-all") {
@@ -422,7 +423,7 @@ class ScreenDefinition {
         rootSection.render(sri)
 
         // all done so pop the artifact info; don't bother making sure this is done on errors/etc like in a finally clause because if there is an error this will help us know how we got there
-        sri.ec.artifactExecution.pop()
+        sri.ec.artifactExecution.pop(aei)
         if (loggedInAnonymous) ((UserFacadeImpl) sri.ec.getUser()).logoutAnonymousOnly()
     }
 
@@ -523,15 +524,17 @@ class ScreenDefinition {
 
         protected boolean beginTransaction = true
         protected boolean readOnly = false
+        protected boolean requireSessionToken = true
 
         TransitionItem(Node transitionNode, ScreenDefinition parentScreen) {
             this.parentScreen = parentScreen
             this.transitionNode = transitionNode
-            name = transitionNode."@name"
-            method = transitionNode."@method" ?: "any"
+            name = transitionNode.attribute("name")
+            method = transitionNode.attribute("method") ?: "any"
             location = "${parentScreen.location}.transition_${StupidUtilities.cleanStringForJavaName(name)}"
-            beginTransaction = transitionNode."@begin-transaction" != "false"
-            readOnly = transitionNode."@read-only" == "true"
+            beginTransaction = transitionNode.attribute("begin-transaction") != "false"
+            readOnly = transitionNode.attribute("read-only") == "true"
+            requireSessionToken = transitionNode.attribute("require-session-token") != "false"
 
             // parameter
             for (Node parameterNode in transitionNode."parameter")
@@ -585,6 +588,8 @@ class ScreenDefinition {
         boolean getBeginTransaction() { return beginTransaction }
         @CompileStatic
         boolean isReadOnly() { return readOnly }
+        @CompileStatic
+        boolean getRequireSessionToken() { return requireSessionToken }
 
         @CompileStatic
         boolean checkCondition(ExecutionContext ec) { return condition ? condition.checkCondition(ec) : true }
@@ -629,8 +634,9 @@ class ScreenDefinition {
             // NOTE: use the View authz action to leave it open, ie require minimal authz; restrictions are often more
             //    in the services/etc if/when needed, or specific transitions can have authz settings
             String requireAuthentication = (String) parentScreen.screenNode.attribute('require-authentication')
-            ec.getArtifactExecution().push(new ArtifactExecutionInfoImpl("${parentScreen.location}/${name}",
-                    "AT_XML_SCREEN_TRANS", "AUTHZA_VIEW"), (!requireAuthentication || requireAuthentication == "true"))
+            ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl("${parentScreen.location}/${name}",
+                                "AT_XML_SCREEN_TRANS", "AUTHZA_VIEW")
+            ec.getArtifactExecution().push(aei, (!requireAuthentication || requireAuthentication == "true"))
 
             boolean loggedInAnonymous = false
             if (requireAuthentication == "anonymous-all") {
@@ -674,7 +680,7 @@ class ScreenDefinition {
 
             // all done so pop the artifact info; don't bother making sure this is done on errors/etc like in a finally
             // clause because if there is an error this will help us know how we got there
-            ec.getArtifactExecution().pop()
+            ec.getArtifactExecution().pop(aei)
             if (loggedInAnonymous) ((UserFacadeImpl) ec.getUser()).logoutAnonymousOnly()
 
             return ri

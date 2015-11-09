@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -64,7 +64,7 @@ class ResourceFacadeTests extends Specification {
         where:
         location | contents
         "component://example/screen/ExampleApp.xml" | "<subscreens default-item=\"Example\">"
-        "classpath://shiro.ini" | "org.moqui.impl.MoquiShiroRealm"
+        "classpath://shiro.ini" | "org.moqui.impl.util.MoquiShiroRealm"
     }
 
     // TODO: add tests for renderTemplateInCurrentContext and script

@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -87,18 +87,6 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
     ArtifactExecutionInfo peek() { return this.artifactExecutionInfoStack.peekFirst() }
 
     @Override
-    ArtifactExecutionInfo pop() {
-        if (this.artifactExecutionInfoStack.size() > 0) {
-            ArtifactExecutionInfoImpl lastAeii = artifactExecutionInfoStack.removeFirst()
-            lastAeii.setEndTime()
-            return lastAeii
-        } else {
-            logger.warn("Tried to pop from an empty ArtifactExecutionInfo stack", new Exception("Bad pop location"))
-            return null
-        }
-    }
-
-    @Override
     void push(String name, String typeEnumId, String actionEnumId, boolean requiresAuthz) {
         push(new ArtifactExecutionInfoImpl(name, typeEnumId, actionEnumId), requiresAuthz)
     }
@@ -117,13 +105,36 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
         // if ("AT_XML_SCREEN" == aeii.typeEnumId) logger.warn("TOREMOVE artifact push ${username} - ${aeii}")
 
         if (!isPermitted(username, aeii, lastAeii, requiresAuthz, true, eci.getUser().getNowTimestamp())) {
-            Exception e = new ArtifactAuthorizationException("User [${username}] is not authorized for ${artifactActionDescriptionMap.get(aeii.getActionEnumId())} on ${artifactTypeDescriptionMap.get(aeii.getTypeEnumId())?:aeii.getTypeEnumId()} [${aeii.getName()}]")
+            StringBuilder warning = new StringBuilder()
+            warning.append("User [${username}] is not authorized for ${artifactActionDescriptionMap.get(aeii.getActionEnumId())} on ${artifactTypeDescriptionMap.get(aeii.getTypeEnumId())?:aeii.getTypeEnumId()} [${aeii.getName()}], here is the current artifact stack:")
+            for (def warnAei in this.stack) warning.append("\n").append(warnAei)
+
+            Exception e = new ArtifactAuthorizationException(warning.toString())
             logger.warn("Artifact authorization failed", e)
             throw e
         }
 
         // NOTE: if needed the isPermitted method will set additional info in aeii
         this.artifactExecutionInfoStack.addFirst(aeii)
+    }
+
+    @Override
+    ArtifactExecutionInfo pop() { return pop(null) }
+
+    @Override
+    ArtifactExecutionInfo pop(ArtifactExecutionInfo aei) {
+        if (this.artifactExecutionInfoStack.size() > 0) {
+            ArtifactExecutionInfoImpl lastAeii = artifactExecutionInfoStack.removeFirst()
+            // removed this for performance reasons, generally just checking the name is adequate
+            // || aei.typeEnumId != lastAeii.typeEnumId || aei.actionEnumId != lastAeii.actionEnumId
+            if (aei != null && (aei.name != lastAeii.name))
+                throw new IllegalArgumentException("Popped artifact (${aei.name}:${aei.typeEnumId}:${aei.actionEnumId}) did not match top of stack (${lastAeii.name}:${lastAeii.typeEnumId}:${lastAeii.actionEnumId}:${lastAeii.actionDetail})")
+            lastAeii.setEndTime()
+            return lastAeii
+        } else {
+            logger.warn("Tried to pop from an empty ArtifactExecutionInfo stack", new Exception("Bad pop location"))
+            return null
+        }
     }
 
     @Override

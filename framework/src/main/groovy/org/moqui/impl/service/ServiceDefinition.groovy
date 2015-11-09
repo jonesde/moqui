@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -16,7 +16,7 @@ import groovy.transform.CompileStatic
 import org.apache.commons.validator.routines.CreditCardValidator
 import org.apache.commons.validator.routines.EmailValidator
 import org.apache.commons.validator.routines.UrlValidator
-import org.moqui.impl.FtlNodeWrapper
+import org.moqui.impl.util.FtlNodeWrapper
 import org.moqui.impl.StupidJavaUtilities
 import org.moqui.impl.StupidUtilities
 import org.moqui.impl.StupidWebUtilities
@@ -771,7 +771,7 @@ class ServiceDefinition {
                 } else {
                     compareCal = eci.l10n.parseDateTime(after, format)
                 }
-                if (!cal.after(compareCal)) {
+                if (cal && !cal.after(compareCal)) {
                     eci.message.addValidationError(null, parameterName, getServiceName(), "Value entered (${pv}) is before ${after}.", null)
                     return false
                 }
@@ -786,7 +786,7 @@ class ServiceDefinition {
                 } else {
                     compareCal = eci.l10n.parseDateTime(before, format)
                 }
-                if (!cal.before(compareCal)) {
+                if (cal && !cal.before(compareCal)) {
                     eci.message.addValidationError(null, parameterName, getServiceName(), "Value entered (${pv}) is after ${before}.", null)
                     return false
                 }

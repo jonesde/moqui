@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -14,15 +14,15 @@ package org.moqui.context;
 
 /** For trace, error, etc logging to the console, files, etc. */
 public interface LoggerFacade {
-    /** Log level copied from org.org.apache.log4j.Level to avoid requiring that on the classpath. */
-    public static final int	TRACE_INT = 5000;
-    public static final int	ALL_INT = -2147483648;
-    public static final int	DEBUG_INT = 10000;
-    public static final int	ERROR_INT = 40000;
-    public static final int	FATAL_INT = 50000;
-    public static final int	INFO_INT = 20000;
-    public static final int	OFF_INT = 2147483647;
-    public static final int	WARN_INT = 30000;
+    /** Log level copied from org.apache.logging.log4j.spi.StandardLevel to avoid requiring that on the classpath. */
+    public static final int	OFF_INT = 0;
+    public static final int	FATAL_INT = 100;
+    public static final int	ERROR_INT = 200;
+    public static final int	WARN_INT = 300;
+    public static final int	INFO_INT = 400;
+    public static final int	DEBUG_INT = 500;
+    public static final int	TRACE_INT = 600;
+    public static final int	ALL_INT = 2147483647;
 
     /** Log a message and/or Throwable error at the given level.
      *

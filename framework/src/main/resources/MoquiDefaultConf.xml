@@ -62,9 +62,8 @@
     <webapp-list>
         <!-- The webapp.@name attribute value is looked up based on the value of the moqui-name context-param in
         the web.xml file. This configuration will allow the framework to do various things for that webapp. -->
-        <webapp name="webroot" http-port="" http-host=""
-                https-port="" https-host="" https-enabled="false"
-                content-prefix-secure="" content-prefix-standard="" cookie-domain="">
+        <webapp name="webroot" http-port="" http-host="" https-port="" https-host=""
+                https-enabled="false" require-session-token="true">
             <!-- root screen for OOTB runtime directory: <root-screen host=".*" location="component://webroot/screen/webroot.xml"/> -->
             <!-- example only, no default actions right now:
             <first-hit-in-visit><actions><log level="info" message="========================== first-hit-in-visit actions"/></actions></first-hit-in-visit>

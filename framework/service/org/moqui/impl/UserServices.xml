@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -107,7 +107,22 @@ along with this software (see the LICENSE.md file). If not, see
                             "moquiRealm")
                 </script>
                 <if condition="!ec.ecfi.getCredentialsMatcher(userAccount.passwordHashType).doCredentialsMatch(token, info)">
-                    <return message="Current password did not match" error="true"/>
+                    <if condition="userAccount.resetPassword">
+                        <then>
+                            <!-- try the resetPassword -->
+                            <script>
+                                info = new org.apache.shiro.authc.SimpleAuthenticationInfo(userAccount.username, userAccount.resetPassword,
+                                        userAccount.passwordSalt ? new org.apache.shiro.util.SimpleByteSource((String) userAccount.passwordSalt) : null,
+                                        "moquiRealm")
+                            </script>
+                            <if condition="!ec.ecfi.getCredentialsMatcher(userAccount.passwordHashType).doCredentialsMatch(token, info)">
+                                <return message="Current password did not match" error="true"/>
+                            </if>
+                        </then>
+                        <else>
+                            <return message="Current password did not match" error="true"/>
+                        </else>
+                    </if>
                 </if>
             </if>
 
@@ -194,6 +209,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-map field-name="passwordHashType" from="ec.ecfi.passwordHashType"/>
                 <field-map field-name="passwordSetDate" from="ec.user.nowTimestamp"/>
                 <field-map field-name="requirePasswordChange"/>
+                <field-map field-name="resetPassword" from="null"/>
                 <field-map field-name="disabled" value="N"/>
             </service-call>
 
@@ -206,9 +222,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="username" required="true"/>
         </in-parameters>
         <actions>
-            <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
-                <field-map field-name="username"/>
-            </entity-find-one>
+            <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount" for-update="true">
+                <field-map field-name="username"/></entity-find-one>
             <if condition="!userAccount">
                 <return message="Could not find user account with username [${username}]" error="true"/>
             </if>
@@ -217,28 +232,20 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
 
             <!-- reset the password to a random value -->
-            <set field="newPassword" from="org.moqui.impl.StupidUtilities.getRandomString(12)"/>
-
+            <set field="resetPassword" from="org.moqui.impl.StupidUtilities.getRandomString(12)"/>
             <set field="passwordNode" from="ec.ecfi.confXmlRoot.'user-facade'[0].'password'[0]"/>
-            <set field="salt" from="ec.ecfi.randomSalt"/>
-            <service-call name="update#moqui.security.UserAccount">
-                <field-map field-name="userId" from="userAccount.userId"/>
-                <field-map field-name="currentPassword" from="ec.ecfi.getSimpleHash(newPassword, salt)"/>
-                <field-map field-name="passwordSalt" from="salt"/>
-                <field-map field-name="passwordHashType" from="ec.ecfi.passwordHashType"/>
-                <field-map field-name="passwordSetDate" from="ec.user.nowTimestamp"/>
-                <field-map field-name="requirePasswordChange"
-                           from="(passwordNode.'@email-require-change' == 'false') ? 'N' : 'Y'"/>
-            </service-call>
-            <script>userAccount.refresh()</script>
+            <set field="userAccount.resetPassword" from="ec.ecfi.getSimpleHash(resetPassword, userAccount.passwordSalt, userAccount.passwordHashType)"/>
+            <set field="userAccount.requirePasswordChange" from="(passwordNode.'@email-require-change' == 'false') ? 'N' : 'Y'"/>
+            <entity-update value-field="userAccount"/>
 
             <!-- send an email with the new password -->
-            <service-call name="org.moqui.impl.EmailServices.send#EmailTemplate">
+            <service-call name="org.moqui.impl.EmailServices.send#EmailTemplate" async="true">
                 <field-map field-name="emailTemplateId" value="PASSWORD_RESET"/>
                 <field-map field-name="toAddresses" from="userAccount.emailAddress"/>
-                <field-map field-name="bodyParameters" from="[userAccount:userAccount, newPassword:newPassword]"/>
+                <field-map field-name="bodyParameters" from="[userAccount:userAccount, resetPassword:resetPassword]"/>
             </service-call>
-            <message>Your password was reset and emailed to: ${userAccount.emailAddress}</message>
+            <message>A reset password was sent by email to ${userAccount.emailAddress}. This password may only be used to change your password. Your current password is still valid.</message>
+            <if condition="userAccount.requirePasswordChange == 'Y'"><message>You must change your password before login.</message></if>
         </actions>
     </service>
 </services>

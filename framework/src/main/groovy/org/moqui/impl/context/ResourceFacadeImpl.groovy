@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -13,7 +13,11 @@
 package org.moqui.impl.context
 
 import groovy.transform.CompileStatic
-import org.apache.avalon.framework.configuration.DefaultConfigurationBuilder
+import org.apache.fop.apps.FopConfParser
+import org.apache.fop.apps.FopFactoryBuilder
+import org.apache.fop.apps.io.ResourceResolverFactory
+import org.apache.xmlgraphics.io.Resource
+import org.apache.xmlgraphics.io.ResourceResolver
 import org.moqui.entity.EntityValue
 
 import javax.mail.util.ByteArrayDataSource
@@ -314,10 +318,12 @@ public class ResourceFacadeImpl implements ResourceFacade {
 
     @Override
     @CompileStatic
+    @Deprecated
     Object runScriptInCurrentContext(String location, String method) { return script(location, method) }
 
     @Override
     @CompileStatic
+    @Deprecated
     Object runScriptInCurrentContext(String location, String method, Map additionalContext) {
         return script(location, method, additionalContext)
     }
@@ -369,18 +375,20 @@ public class ResourceFacadeImpl implements ResourceFacade {
     }
     @CompileStatic
     Object getValueFromContext(String from, String value, String defaultValue, String type) {
-        def tempValue = from ? expression(from, "") : expand(value, "")
-        if (!tempValue && defaultValue) tempValue = expand(defaultValue, "")
+        def tempValue = from ? expression(from, "") : expand(value, "", null, false)
+        if (!tempValue && defaultValue) tempValue = expand(defaultValue, "", null, false)
         if (type) tempValue = StupidUtilities.basicConvert(tempValue, type)
         return tempValue
     }
 
     @Override
     @CompileStatic
+    @Deprecated
     boolean evaluateCondition(String expression, String debugLocation) { return condition(expression, debugLocation) }
 
     @Override
     @CompileStatic
+    @Deprecated
     boolean evaluateCondition(String expression, String debugLocation, Map additionalContext) {
         return condition(expression, debugLocation, additionalContext)
     }
@@ -417,9 +425,11 @@ public class ResourceFacadeImpl implements ResourceFacade {
 
     @Override
     @CompileStatic
+    @Deprecated
     Object evaluateContextField(String expr, String debugLocation) { return expression(expr, debugLocation) }
     @Override
     @CompileStatic
+    @Deprecated
     Object evaluateContextField(String expr, String debugLocation, Map additionalContext) {
         return expression(expr, debugLocation, additionalContext)
     }
@@ -456,38 +466,37 @@ public class ResourceFacadeImpl implements ResourceFacade {
 
     @Override
     @CompileStatic
+    @Deprecated
     String evaluateStringExpand(String inputString, String debugLocation) { expand(inputString, debugLocation) }
     @Override
     @CompileStatic
+    @Deprecated
     String evaluateStringExpand(String inputString, String debugLocation, Map additionalContext) {
         return expand(inputString, debugLocation, additionalContext)
     }
+
     @Override
     @CompileStatic
     String expand(String inputString, String debugLocation) {
-        if (!inputString) return ""
-
-        // always localize string before expanding
-        if (inputString.length() < 256) inputString = ecfi.l10nFacade.localize(inputString)
-        // if no $ then it's a plain String, just return it
-        if (!inputString.contains("\$")) return inputString
-
-        String expression = '"""' + inputString + '"""'
-        try {
-            Script script = getGroovyScript(expression)
-            if (script == null) return null
-            Object result = script.run()
-            return result as String
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error in string expression [${expression}] from [${debugLocation}]", e)
-        }
+        return expand(inputString, debugLocation, null, true)
     }
     @Override
     @CompileStatic
     String expand(String inputString, String debugLocation, Map additionalContext) {
-        ExecutionContext ec = ecfi.getExecutionContext()
-        ContextStack cs = (ContextStack) ec.context
-        boolean doPushPop = additionalContext as boolean
+        return expand(inputString, debugLocation, additionalContext, true)
+    }
+
+    @Override
+    @CompileStatic
+    String expand(String inputString, String debugLocation, Map additionalContext, boolean localize) {
+        if (!inputString) return ""
+
+        boolean doPushPop = additionalContext != null && additionalContext.size() > 0
+        ContextStack cs = null
+        if (doPushPop) {
+            ExecutionContext ec = ecfi.getExecutionContext()
+            cs = (ContextStack) ec.context
+        }
         try {
             if (doPushPop) {
                 if (additionalContext instanceof EntityValue) { cs.push(((EntityValue) additionalContext).getMap()) }
@@ -495,7 +504,21 @@ public class ResourceFacadeImpl implements ResourceFacade {
                 // do another push so writes to the context don't modify the passed in Map
                 cs.push()
             }
-            return expand(inputString, debugLocation)
+
+            // localize string before expanding
+            if (localize && inputString.length() < 256) inputString = ecfi.l10nFacade.localize(inputString)
+            // if no $ then it's a plain String, just return it
+            if (!inputString.contains('$')) return inputString
+
+            String expression = '"""' + inputString + '"""'
+            try {
+                Script script = getGroovyScript(expression)
+                if (script == null) return null
+                Object result = script.run()
+                return result as String
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Error in string expression [${expression}] from [${debugLocation}]", e)
+            }
         } finally {
             if (doPushPop) { cs.pop(); cs.pop(); }
         }
@@ -560,9 +583,13 @@ public class ResourceFacadeImpl implements ResourceFacade {
         if (contentType.startsWith("text/")) return false
         // aside from text/*, a few notable exceptions:
         if (contentType == "application/javascript") return false
+        if (contentType == "application/json") return false
+        if (contentType.endsWith("+json")) return false
         if (contentType == "application/rtf") return false
-        if (contentType == "application/xml") return false
-        if (contentType == "application/xml-dtd") return false
+        if (contentType.startsWith("application/xml")) return false
+        if (contentType.endsWith("+xml")) return false
+        if (contentType.startsWith("application/yaml")) return false
+        if (contentType.endsWith("+yaml")) return false
         return true
     }
 
@@ -576,7 +603,7 @@ public class ResourceFacadeImpl implements ResourceFacade {
 
         FopFactory ff = getFopFactory()
         FOUserAgent foUserAgent = ff.newFOUserAgent()
-        foUserAgent.setURIResolver(new LocalResolver(ecfi, foUserAgent.getURIResolver()))
+        // no longer needed? foUserAgent.setURIResolver(new LocalResolver(ecfi, foUserAgent.getURIResolver()))
         Fop fop = ff.newFop(contentType, foUserAgent, out)
 
         transformer.transform(xslFoSrc, new SAXResult(fop.getDefaultHandler()))
@@ -586,16 +613,50 @@ public class ResourceFacadeImpl implements ResourceFacade {
     FopFactory getFopFactory() {
         if (internalFopFactory != null) return internalFopFactory
 
-        // setup FopFactory
-        internalFopFactory = FopFactory.newInstance()
+        URI baseURI = getLocationReference((String) ecfi.runtimePath + "/conf").getUri()
+        ResourceResolver resolver = new LocalResourceResolver(ecfi, ResourceResolverFactory.createDefaultResourceResolver())
+        FopConfParser parser = new FopConfParser(getLocationStream("classpath://fop.xconf"), baseURI, resolver)
+        FopFactoryBuilder builder = parser.getFopFactoryBuilder()
         // Limit the validation for backwards compatibility
-        internalFopFactory.setStrictValidation(false)
-        DefaultConfigurationBuilder cfgBuilder = new DefaultConfigurationBuilder()
-        internalFopFactory.setUserConfig(cfgBuilder.build(ecfi.resourceFacade.getLocationStream("classpath://fop.xconf")))
-        internalFopFactory.getFontManager().setFontBaseURL((String) ecfi.runtimePath + "/conf")
-        internalFopFactory.setURIResolver(new LocalResolver(ecfi, internalFopFactory.getURIResolver()))
+        builder.setStrictFOValidation(false)
+        internalFopFactory = builder.build()
+
+        // need something like this? internalFopFactory.getFontManager().setResourceResolver(resolver)
 
         return internalFopFactory
+    }
+
+    @CompileStatic
+    static class LocalResourceResolver implements ResourceResolver {
+        protected ExecutionContextFactoryImpl ecfi
+        protected ResourceResolver defaultResolver
+
+        protected LocalResourceResolver() {}
+
+        public LocalResourceResolver(ExecutionContextFactoryImpl ecfi, ResourceResolver defaultResolver) {
+            this.ecfi = ecfi
+            this.defaultResolver = defaultResolver
+        }
+
+        public OutputStream getOutputStream(URI uri) throws IOException {
+            ResourceReference rr = ecfi.getResourceFacade().getLocationReference(uri.toASCIIString())
+            if (rr != null) {
+                OutputStream os = rr.getOutputStream()
+                if (os != null) { return os }
+            }
+
+            return defaultResolver?.getOutputStream(uri)
+         }
+
+         public Resource getResource(URI uri) throws IOException {
+             ResourceReference rr = ecfi.getResourceFacade().getLocationReference(uri.toASCIIString())
+             if (rr != null) {
+                 InputStream is = rr.openStream()
+                 if (is != null) { return new Resource(is) }
+             }
+
+             return defaultResolver?.getResource(uri)
+         }
     }
 
     @CompileStatic

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -34,7 +34,7 @@ along with this software (see the LICENSE.md file). If not, see
             <order-by field-name="fieldName"/>
         </entity-find>
         <set field="relationshipInfoList" from="entityDefinition.getRelationshipsInfo(false)"/>
-        <set field="dependents" from="entityDefinition.getDependentsTree(null)"/>
+        <set field="dependents" from="entityDefinition.getDependentsTree()"/>
     </actions>
     <widgets>
         <container>
@@ -94,7 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
         <label text="${dependents.toString()}" type="pre" encode="true"/>
         <label text="All Descendants:" type="h5"/>
         <section-iterate name="DescendantList" list="dependents.allDescendants" entry="descendantName">
-            <widgets><link url="." text="${descendantName}" parameter-map="[entityName:descendantName]" link-type="anchor"/></widgets>
+            <widgets><container><link url="." text="${descendantName}" parameter-map="[entityName:descendantName]" link-type="anchor"/></container></widgets>
         </section-iterate>
     </widgets>
 </screen>

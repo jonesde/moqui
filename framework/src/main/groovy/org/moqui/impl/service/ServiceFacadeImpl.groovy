@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -445,9 +445,9 @@ class ServiceFacadeImpl implements ServiceFacade {
     }
 
     @CompileStatic
-    void runEmecaRules(MimeMessage message) {
+    void runEmecaRules(MimeMessage message, String emailServerId) {
         ExecutionContext ec = ecfi.executionContext
-        for (EmailEcaRule eer in emecaRuleList) eer.runIfMatches(message, ec)
+        for (EmailEcaRule eer in emecaRuleList) eer.runIfMatches(message, emailServerId, ec)
     }
 
     @Override

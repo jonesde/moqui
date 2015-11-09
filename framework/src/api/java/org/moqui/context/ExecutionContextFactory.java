@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -21,7 +21,7 @@ import org.moqui.BaseException;
 import org.moqui.entity.EntityFacade;
 import org.moqui.service.ServiceFacade;
 
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Interface for the object that will be used to get an ExecutionContext object and manage framework life cycle.
@@ -39,13 +39,12 @@ public interface ExecutionContextFactory {
     void destroy();
 
     /**
-     * Register a component with the framework.
+     * Register a component with the framework. The component name will be the last directory in the location path
+     * unless there is a component.xml file in the directory and the component.@name attribute is specified.
      *
-     * @param componentName Optional name for the component. If not specified the last directory in the location path
-     *     will be used as the name.
-     * @param baseLocation A file system directory or a content repository location (the component base location).
+     * @param location A file system directory or a content repository location (the component base location).
      */
-    void initComponent(String componentName, String baseLocation) throws BaseException;
+    void initComponent(String location) throws BaseException;
 
     /**
      * Destroy a component that has been initialized.
@@ -58,7 +57,7 @@ public interface ExecutionContextFactory {
     void destroyComponent(String componentName) throws BaseException;
 
     /** Get a Map where each key is a component name and each value is the component's base location. */
-    Map<String, String> getComponentBaseLocations();
+    LinkedHashMap<String, String> getComponentBaseLocations();
 
     /** For localization (l10n) functionality, like localizing messages. */
     L10nFacade getL10n();

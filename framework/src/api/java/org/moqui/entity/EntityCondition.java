@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -24,29 +24,29 @@ import java.util.Map;
  */
 public interface EntityCondition extends Serializable {
 
-    public static final ComparisonOperator EQUALS = ComparisonOperator.EQUALS;
-    public static final ComparisonOperator NOT_EQUAL = ComparisonOperator.NOT_EQUAL;
-    public static final ComparisonOperator LESS_THAN = ComparisonOperator.LESS_THAN;
-    public static final ComparisonOperator GREATER_THAN = ComparisonOperator.GREATER_THAN;
-    public static final ComparisonOperator LESS_THAN_EQUAL_TO = ComparisonOperator.LESS_THAN_EQUAL_TO;
-    public static final ComparisonOperator GREATER_THAN_EQUAL_TO = ComparisonOperator.GREATER_THAN_EQUAL_TO;
-    public static final ComparisonOperator IN = ComparisonOperator.IN;
-    public static final ComparisonOperator NOT_IN = ComparisonOperator.NOT_IN;
-    public static final ComparisonOperator BETWEEN = ComparisonOperator.BETWEEN;
-    public static final ComparisonOperator NOT_BETWEEN = ComparisonOperator.NOT_BETWEEN;
-    public static final ComparisonOperator LIKE = ComparisonOperator.LIKE;
-    public static final ComparisonOperator NOT_LIKE = ComparisonOperator.NOT_LIKE;
-    public static final ComparisonOperator IS_NULL = ComparisonOperator.IS_NULL;
-    public static final ComparisonOperator IS_NOT_NULL = ComparisonOperator.IS_NOT_NULL;
+    ComparisonOperator EQUALS = ComparisonOperator.EQUALS;
+    ComparisonOperator NOT_EQUAL = ComparisonOperator.NOT_EQUAL;
+    ComparisonOperator LESS_THAN = ComparisonOperator.LESS_THAN;
+    ComparisonOperator GREATER_THAN = ComparisonOperator.GREATER_THAN;
+    ComparisonOperator LESS_THAN_EQUAL_TO = ComparisonOperator.LESS_THAN_EQUAL_TO;
+    ComparisonOperator GREATER_THAN_EQUAL_TO = ComparisonOperator.GREATER_THAN_EQUAL_TO;
+    ComparisonOperator IN = ComparisonOperator.IN;
+    ComparisonOperator NOT_IN = ComparisonOperator.NOT_IN;
+    ComparisonOperator BETWEEN = ComparisonOperator.BETWEEN;
+    ComparisonOperator NOT_BETWEEN = ComparisonOperator.NOT_BETWEEN;
+    ComparisonOperator LIKE = ComparisonOperator.LIKE;
+    ComparisonOperator NOT_LIKE = ComparisonOperator.NOT_LIKE;
+    ComparisonOperator IS_NULL = ComparisonOperator.IS_NULL;
+    ComparisonOperator IS_NOT_NULL = ComparisonOperator.IS_NOT_NULL;
 
-    public static final JoinOperator AND = JoinOperator.AND;
-    public static final JoinOperator OR = JoinOperator.OR;
+    JoinOperator AND = JoinOperator.AND;
+    JoinOperator OR = JoinOperator.OR;
 
-    public enum ComparisonOperator { EQUALS, NOT_EQUAL,
+    enum ComparisonOperator { EQUALS, NOT_EQUAL,
         LESS_THAN, GREATER_THAN, LESS_THAN_EQUAL_TO, GREATER_THAN_EQUAL_TO,
         IN, NOT_IN, BETWEEN, NOT_BETWEEN, LIKE, NOT_LIKE, IS_NULL, IS_NOT_NULL }
 
-    public enum JoinOperator { AND, OR }
+    enum JoinOperator { AND, OR }
 
     /** Evaluate the condition in memory. */
     boolean mapMatches(Map<String, ?> map);

@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -570,7 +570,7 @@ class EntityFacadeImpl implements EntityFacade {
                     extendEntityNodes.add(childNode)
                 } else {
                     if (entityNode != null) logger.warn("Entity [${entityName}] was found again at [${location}], so overriding definition from previous location")
-                    entityNode = childNode
+                    entityNode = StupidUtilities.deepCopyNode(childNode)
                 }
             }
         }
@@ -607,9 +607,29 @@ class EntityFacadeImpl implements EntityFacade {
                 else entityNode.append(childOverrideNode)
             }
             // add relationship, key-map (copy over, will get child nodes too
-            for (Node copyNode in extendEntity."relationship") entityNode.append(copyNode)
+            for (Node copyNode in extendEntity."relationship") {
+                Node currentNode = (Node) entityNode.get("relationship")
+                        .find({ ((Node) it).attribute('title') == copyNode.attribute('title') &&
+                            ((Node) it).attribute('related-entity-name') == copyNode.attribute('related-entity-name') })
+                if (currentNode) {
+                    currentNode.replaceNode(copyNode)
+                } else {
+                    entityNode.append(copyNode)
+                }
+            }
             // add index, index-field
-            for (Node copyNode in extendEntity."index") entityNode.append(copyNode)
+            for (Node copyNode in extendEntity."index") {
+                Node currentNode = (Node) entityNode.get("index")
+                        .find({ ((Node) it).attribute('name') == copyNode.attribute('name') })
+                if (currentNode) {
+                    currentNode.replaceNode(copyNode)
+                } else {
+                    entityNode.append(copyNode)
+                }
+            }
+            // copy master nodes (will be merged on parse)
+            // TODO: check master/detail existance before append it into entityNode
+            for (Node copyNode in extendEntity."master") entityNode.append(copyNode)
         }
 
         // create the new EntityDefinition
@@ -637,7 +657,7 @@ class EntityFacadeImpl implements EntityFacade {
             List<String> pkSet = ed.getPkFieldNames()
             for (Node relNode in ed.entityNode."relationship") {
                 // don't create reverse for auto reference relationships
-                if (relNode."@is-auto-reverse" == "true") continue
+                if (relNode.attribute('is-auto-reverse') == "true") continue
                 String relatedEntityName = (String) relNode."@related-entity-name"
                 // don't create reverse relationships coming back to the same entity, since it will have the same title
                 //     it would create multiple relationships with the same name
@@ -657,12 +677,13 @@ class EntityFacadeImpl implements EntityFacade {
 
                 List<String> reversePkSet = reverseEd.getPkFieldNames()
                 String relType = reversePkSet.equals(pkSet) ? "one-nofk" : "many"
-                String title = relNode."@title"
+                String title = relNode.attribute('title')
 
-                // does a many relationship coming back already exist?
+                // does a relationship coming back already exist?
                 Node reverseRelNode = (Node) reverseEd.entityNode."relationship".find(
-                        { (it."@related-entity-name" == ed.entityName || it."@related-entity-name" == ed.fullEntityName) &&
-                                it."@type" == relType && ((!title && !it."@title") || it."@title" == title) })
+                        { (it.attribute('related-entity-name') == ed.entityName || it.attribute('related-entity-name') == ed.fullEntityName) &&
+                                ((!title && !it.attribute('title')) || it.attribute('title') == title) })
+                // NOTE: removed "it."@type" == relType && ", if there is already any relationship coming back don't create the reverse
                 if (reverseRelNode != null) {
                     // NOTE DEJ 20150314 Just track auto-reverse, not one-reverse
                     // make sure has is-one-reverse="true"
@@ -678,7 +699,7 @@ class EntityFacadeImpl implements EntityFacade {
 
                 Node newRelNode = reverseEd.entityNode.appendNode("relationship",
                         ["related-entity-name":ed.fullEntityName, "type":relType, "is-auto-reverse":"true"])
-                if (relNode."@title") newRelNode.attributes().title = title
+                if (relNode.attribute('title')) newRelNode.attributes().title = title
                 for (Map.Entry keyEntry in keyMap) {
                     // add a key-map with the reverse fields
                     newRelNode.appendNode("key-map", ["field-name":keyEntry.value, "related-field-name":keyEntry.key])
@@ -814,7 +835,7 @@ class EntityFacadeImpl implements EntityFacade {
 
     Set<String> getAllNonViewEntityNames() {
         Set<String> allNames = getAllEntityNames()
-        Set<String> nonViewNames = new HashSet<>()
+        Set<String> nonViewNames = new TreeSet<>()
         for (String name in allNames) {
             EntityDefinition ed = getEntityDefinition(name)
             if (ed != null && !ed.isViewEntity()) nonViewNames.add(name)
@@ -822,9 +843,13 @@ class EntityFacadeImpl implements EntityFacade {
         return nonViewNames
     }
 
-    List<Map> getAllEntityInfo(int levels) {
+    List<Map> getAllEntityInfo(int levels, boolean excludeViewEntities) {
         Map<String, Map> entityInfoMap = [:]
         for (String entityName in getAllEntityNames()) {
+            if (excludeViewEntities) {
+                EntityDefinition ed = getEntityDefinition(entityName)
+                if (ed.isViewEntity()) continue
+            }
             int lastDotIndex = 0
             for (int i = 0; i < levels; i++) lastDotIndex = entityName.indexOf(".", lastDotIndex+1)
             String name = lastDotIndex == -1 ? entityName : entityName.substring(0, lastDotIndex)
@@ -913,7 +938,8 @@ class EntityFacadeImpl implements EntityFacade {
 
         List<Map<String, Object>> eil = new LinkedList()
         for (String en in getAllEntityNames()) {
-            if (filterRegexp && !en.matches(filterRegexp)) continue
+            // Added (?i) to ignore the case and '*' in the starting and at ending to match if searched string is sub-part of entity name
+            if (filterRegexp && !en.matches("(?i).*" + filterRegexp + ".*")) continue
             EntityDefinition ed = null
             try { ed = getEntityDefinition(en) } catch (EntityException e) { logger.warn("Problem finding entity definition", e) }
             if (ed == null) continue
@@ -1074,6 +1100,8 @@ class EntityFacadeImpl implements EntityFacade {
 
         boolean dependents = (parameters.dependents == 'true' || parameters.dependents == 'Y')
         int dependentLevels = (parameters.dependentLevels ?: (dependents ? '2' : '0')) as int
+        String masterName = parameters.master
+
         List<String> localPath = new ArrayList<String>(entityPath)
 
         String firstEntityName = localPath.remove(0)
@@ -1128,18 +1156,23 @@ class EntityFacadeImpl implements EntityFacade {
                 // if we have a full PK lookup by PK and return the single value
                 Map pkValues = [:]
                 lastEd.setFields(parameters, pkValues, false, null, true)
-                EntityValueBase evb = (EntityValueBase) find(lastEd.getFullEntityName()).condition(pkValues).one()
-                if (evb == null) throw new EntityValueNotFoundException("No value found for entity [${lastEd.getShortAlias()?:''}:${lastEd.getFullEntityName()}] with key ${pkValues}")
 
-                Map resultMap = evb.getPlainValueMap(dependentLevels)
-                return resultMap
+                if (masterName) {
+                    Map resultMap = find(lastEd.getFullEntityName()).condition(pkValues).oneMaster(masterName)
+                    if (resultMap == null) throw new EntityValueNotFoundException("No value found for entity [${lastEd.getShortAlias()?:''}:${lastEd.getFullEntityName()}] with key ${pkValues}")
+                    return resultMap
+                } else {
+                    EntityValueBase evb = (EntityValueBase) find(lastEd.getFullEntityName()).condition(pkValues).one()
+                    if (evb == null) throw new EntityValueNotFoundException("No value found for entity [${lastEd.getShortAlias()?:''}:${lastEd.getFullEntityName()}] with key ${pkValues}")
+                    Map resultMap = evb.getPlainValueMap(dependentLevels)
+                    return resultMap
+                }
             } else {
                 // otherwise do a list find
                 EntityFind ef = find(lastEd.getFullEntityName()).searchFormMap(parameters, null, false)
                 // we don't want to go overboard with these requests, never do an unlimited find, if no limit use 100
                 if (!ef.getLimit()) ef.limit(100)
 
-                EntityList el = ef.list()
                 // support pagination, at least "X-Total-Count" header if find is paginated
                 long count = ef.count()
                 long pageIndex = ef.getPageIndex()
@@ -1156,8 +1189,14 @@ class EntityFacadeImpl implements EntityFacade {
                 parameters.put('xPageRangeLow', pageRangeLow)
                 parameters.put('xPageRangeHigh', pageRangeHigh)
 
-                List resultList = el.getPlainValueList(dependentLevels)
-                return resultList
+                if (masterName) {
+                    List resultList = ef.listMaster(masterName)
+                    return resultList
+                } else {
+                    EntityList el = ef.list()
+                    List resultList = el.getPlainValueList(dependentLevels)
+                    return resultList
+                }
             }
         } else {
             // use the entity auto service runner for other operations (create, store, update, delete)

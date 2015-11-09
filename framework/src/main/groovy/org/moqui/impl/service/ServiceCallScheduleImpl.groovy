@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -12,6 +12,7 @@
  */
 package org.moqui.impl.service
 
+import org.moqui.context.ArtifactExecutionInfo
 import org.moqui.impl.context.ArtifactExecutionInfoImpl
 import org.moqui.service.ServiceCallSchedule
 // NOTE: IDEs may say this import isn't necessary since it is from an implemented interface, but compiler blows up without it
@@ -109,8 +110,8 @@ class ServiceCallScheduleImpl extends ServiceCallImpl implements ServiceCallSche
         }
 
         // always do an authz before scheduling the job
-        eci.getArtifactExecution().push(new ArtifactExecutionInfoImpl(getServiceName(), "AT_SERVICE",
-                ServiceDefinition.getVerbAuthzActionId(verb)), (sd != null && sd.getAuthenticate() == "true"))
+        ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(getServiceName(), "AT_SERVICE", ServiceDefinition.getVerbAuthzActionId(verb))
+        eci.getArtifactExecution().push(aei, (sd != null && sd.getAuthenticate() == "true"))
 
         parameters.authUsername = eci.getUser().getUsername()
         parameters.authTenantId = eci.getTenantId()
@@ -161,6 +162,6 @@ class ServiceCallScheduleImpl extends ServiceCallImpl implements ServiceCallSche
         sfi.scheduler.scheduleJob(job, trigger)
 
         // we did an authz before scheduling, so pop it now
-        eci.getArtifactExecution().pop()
+        eci.getArtifactExecution().pop(aei)
     }
 }

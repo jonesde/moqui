@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -182,9 +182,6 @@ span.shaded-area { display: inline-block; white-space: normal; }
 
 .app-list-link { font-size: 1.5em; display: block; width: 400px; margin: 8px auto 8px auto; }
 
-#ArtifactHitBins-table tbody tr td, #ArtifactHitBins-table thead tr th, #ArtifactHitBins-table thead tr th div select,
-#ArtifactHitBins-table thead tr th div input { font-size: .8em; }
-
 #VisitArtifactHitList-table tbody tr td div { font-size: 1em; }
 
 .ScreenTreeNested { margin: 4px 0 4px 12px; padding: 0 0 0 12px; border-left: 1px dashed #DDDDDF; }
@@ -276,6 +273,7 @@ input[type=radio], input[type=checkbox] { height: auto; }
 .dynamic-dialog .chosen-container, .container-dialog .chosen-container { min-width: 200px !important; }
 .field-row-item .chosen-container { min-width: 150px !important; }
 .dynamic-options { min-width: 200px !important; }
+.chosen-container.chosen-small { min-width: 150px !important; }
 .chosen-container.chosen-medium { min-width: 200px !important; }
 .chosen-container.chosen-wide { min-width: 300px !important; }
 .chosen-container.chosen-wider { min-width: 400px !important; }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -407,7 +407,7 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.basic.UomConversion uomConversionId="TEMP_C_F" uomId="TEMP_C" toUomId="TEMP_F" conversionFactor="1.8" conversionOffset="32"/>
 
     <!-- =============== Other =============== -->
-    <moqui.basic.Uom abbreviation="A" description="Amphere - Electric current" uomId="OTH_A" uomTypeEnumId="UT_OTHER_MEASURE"/>
+    <moqui.basic.Uom abbreviation="A" description="Ampere - Electric current" uomId="OTH_A" uomTypeEnumId="UT_OTHER_MEASURE"/>
     <moqui.basic.Uom abbreviation="cd" description="Candela - Luminosity (intensity of light)" uomId="OTH_cd" uomTypeEnumId="UT_OTHER_MEASURE"/>
     <moqui.basic.Uom abbreviation="mol" description="Mole - Substance (molecule)" uomId="OTH_mol" uomTypeEnumId="UT_OTHER_MEASURE"/>
     <moqui.basic.Uom abbreviation="RPM" description="Revolutions Per Minute" uomId="OTH_RPM" uomTypeEnumId="UT_OTHER_MEASURE"/>

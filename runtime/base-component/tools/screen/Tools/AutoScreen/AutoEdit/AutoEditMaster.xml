@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -33,26 +33,26 @@ along with this software (see the LICENSE.md file). If not, see
                 import org.moqui.entity.EntityDataWriter
 
                 ExecutionContext ec = context.ec
-                int valuesWritten = ec.entity.makeDataWriter().dependentLevels((dependentLevels ?: '2') as int)
+                EntityDataWriter edw = ec.entity.makeDataWriter().dependentLevels((dependentLevels ?: '2') as int)
                         .fileType(fileType == 'JSON' ? EntityDataWriter.JSON : EntityDataWriter.XML)
-                        .entityName(aen).filterMap(entityValue.getPrimaryKeys()).file(filename)
+                        .entityName(aen).filterMap(entityValue.getPrimaryKeys())
 
-                /* old approach not using EntityDataWriter:
-                File outFile = new File(filename)
-                if (!outFile.createNewFile()) {
-                    ec.message.addError("File ${filename} already exists.")
-                } else {
-                    PrintWriter pw = new PrintWriter(outFile)
-                    pw.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-                    pw.println("<entity-facade-xml>")
-                    int valuesWritten = entityValue.writeXmlText(pw, null, (dependentLevels ?: '2') as int)
-                    pw.println("</entity-facade-xml>")
-                    pw.close()
-                    ec.message.addMessage("Wrote ${valuesWritten} records to file ${filename}")
+                noResponse = false
+                if (context.output == "file") {
+                    edw.file(filename)
+                } else if (context.output == "browser") {
+                    // stream to ec.web.response
+                    def response = ec.web.response
+                    response.setContentType(fileType == 'JSON' ? 'application/json' : 'text/xml')
+                    response.setCharacterEncoding("UTF-8")
+                    response.addHeader("Cache-Control", "no-cache, must-revalidate, private")
+                    edw.writer(response.getWriter())
+                    noResponse = true
                 }
-                */
+
                 ]]></script>
         </actions>
+        <conditional-response type="none"><condition><expression>noResponse</expression></condition></conditional-response>
         <default-response url="." parameter-map="ec.entity.getEntityDefinition(aen).getPrimaryKeys(context)"/>
     </transition>
     <transition name="getFormXml">
@@ -99,9 +99,16 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="fileType"><default-field>
                 <radio no-current-selected-key="XML"><option key="XML"/><option key="JSON"/></radio>
             </default-field></field>
+            <field name="output">
+                <default-field><radio no-current-selected-key="browser">
+                    <option key="file" text="Single File"/>
+                    <option key="browser" text="Out to Browser"/>
+                </radio></default-field>
+            </field>
             <field name="submitButton"><default-field title="Export"><submit/></default-field></field>
             <field-layout><field-row-big><field-ref name="aen"/><field-ref name="filename"/>
-                <field-ref name="dependentLevels"/><field-ref name="fileType"/><field-ref name="submitButton"/>
+                <field-ref name="dependentLevels"/><field-ref name="fileType"/><field-ref name="output"/>
+                <field-ref name="submitButton"/>
             </field-row-big></field-layout>
         </form-single>
         <link url="getFormXml" text="Get Form XML" link-type="hidden-form-link" target-window="_blank"/>

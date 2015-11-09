@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -39,6 +39,10 @@ along with this software (see the LICENSE.md file). If not, see
     To get a record plus all dependents in the JSON document use dependents=true:
 
     curl -X GET -u john.doe:moqui -i http://localhost:8080/rest/v1/examples/TEST2?dependents=true
+
+    To get a record plus all dependent/related records for a master definition in the JSON document use master=${masterName}:
+
+    curl -X GET -u john.doe:moqui -i http://localhost:8080/rest/v1/examples/TEST2?master=default
 
     Parameters can also be used for searching, which supports the per-field extensions (_op, _ic, etc) of
     EntityFind.searchFormInputs(), the orderByField parameter for comma-separated fields to sort the results by,
@@ -111,10 +115,49 @@ along with this software (see the LICENSE.md file). If not, see
             http://localhost:8080/rest/v1/examples
     curl -X GET -u john.doe:moqui -i http://localhost:8080/rest/v1/examples/TEST2?dependentLevels=1
 
+    To authenticate in and access a specific tenant just pass in the tenantId, like (before running these make sure
+    Example data is loaded in the EXAMPLE1 tenant database using something like "gradle load -PtenantId=EXAMPLE1"):
+
+    curl -X GET -u john.doe:moqui http://localhost:8080/rest/v1/examples/TEST2?authTenantId=EXAMPLE1
+
+    curl -X POST -H "Content-Type: application/json" \
+         -d '{ "exampleName":"REST Test 1", "exampleTypeEnumId":"EXT_MADE_UP", "statusId":"EXST_IN_DESIGN", \
+             "authUsername":"john.doe", "authPassword":"moqui", "authTenantId":"EXAMPLE1" }' http://localhost:8080/rest/v1/examples
+
     -->
     <!-- NOTE: read-only=true to disable check for URL parameters for transitions with actions -->
     <transition name="v1" read-only="true">
         <actions><script>ec.web.handleEntityRestCall(sri.screenUrlInfo.extraPathNameList)</script></actions>
+        <default-response type="none"/>
+    </transition>
+
+    <!--
+    To get the json-schema (see http://json-schema.org) for an entity use a request like:
+
+    curl -X GET -u john.doe:moqui http://localhost:8080/rest/schema/examples
+    curl -X GET -u john.doe:moqui http://localhost:8080/rest/schema/examples.json
+    curl -X GET -u john.doe:moqui http://localhost:8080/rest/schema/example.Example
+
+    To get the json-schema (see http://json-schema.org) for ALL entities use a request like:
+
+    curl -X GET -u john.doe:moqui http://localhost:8080/rest/schema
+    curl -X GET -u john.doe:moqui http://localhost:8080/rest/schema.json
+
+    -->
+    <transition name="schema" read-only="true" method="get">
+        <actions><script>ec.web.handleEntityRestSchema(sri.screenUrlInfo.extraPathNameList, sri.buildUrl("schema").getUrl(),
+                sri.buildUrl("v1").getUrl(), sri.buildUrl("schema").getUrl())</script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="schema.json" read-only="true" method="get">
+        <actions><script>ec.web.handleEntityRestSchema(sri.screenUrlInfo.extraPathNameList, sri.buildUrl("schema").getUrl(),
+                sri.buildUrl("v1").getUrl(), sri.buildUrl("schema").getUrl())</script></actions>
+        <default-response type="none"/>
+    </transition>
+
+    <transition name="schema.raml" read-only="true" method="get">
+        <actions><script>ec.web.handleEntityRestRaml(sri.screenUrlInfo.extraPathNameList,
+                sri.buildUrl("v1").getUrl(), sri.buildUrl("schema").getUrl())</script></actions>
         <default-response type="none"/>
     </transition>
 

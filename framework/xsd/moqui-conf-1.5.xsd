@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -136,13 +136,16 @@ along with this software (see the LICENSE.md file). If not, see
             <xs:attribute name="https-host" type="xs:string"/>
             <xs:attribute name="http-port" type="xs:string"/>
             <xs:attribute name="http-host" type="xs:string"/>
+            <xs:attribute name="require-session-token" default="true" type="boolean"><xs:annotation><xs:documentation>
+                If not false (default true) moquiSessionToken (from ec.web.sessionToken) must be passed to all
+                screen/transition requests in a session after the first.</xs:documentation></xs:annotation></xs:attribute>
             <!-- Content URL prefixes to make it easy to move the serving load for static content to other machines -->
-            <!-- TODO use in code -->
-            <xs:attribute name="content-prefix-secure" type="xs:string"/>
-            <!-- TODO use in code -->
-            <xs:attribute name="content-prefix-standard" type="xs:string"/>
-            <!-- TODO use in code -->
-            <xs:attribute name="cookie-domain" type="xs:string"/>
+            <!-- TODO use in code
+            <xs:attribute name="content-prefix-secure" type="xs:string"/> -->
+            <!-- TODO use in code
+            <xs:attribute name="content-prefix-standard" type="xs:string"/> -->
+            <!-- TODO use in code
+            <xs:attribute name="cookie-domain" type="xs:string"/> -->
         </xs:complexType>
     </xs:element>
     <xs:element name="root-screen">
@@ -664,8 +667,19 @@ along with this software (see the LICENSE.md file). If not, see
     </xs:element>
     <xs:element name="component">
         <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="depends-on" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
             <xs:attribute name="name" type="xs:string" use="optional"/>
-            <xs:attribute name="location" type="xs:string" use="required"/>
+            <xs:attribute name="location" type="xs:string" use="optional"><xs:annotation><xs:documentation>
+                Required when under component-list (in Moqui Conf XML file or a components.xml file), optional
+                when component element is in a component.xml file within a component.
+            </xs:documentation></xs:annotation></xs:attribute>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="depends-on">
+        <xs:complexType>
+            <xs:attribute name="name" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
 </xs:schema>

@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -53,7 +53,6 @@ import org.apache.shiro.authc.credential.HashedCredentialsMatcher
 import org.apache.shiro.crypto.hash.SimpleHash
 import org.apache.shiro.config.IniSecurityManagerFactory
 import org.apache.shiro.SecurityUtils
-import org.apache.commons.collections.map.ListOrderedMap
 
 import org.apache.camel.CamelContext
 import org.apache.camel.impl.DefaultCamelContext
@@ -79,7 +78,7 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     protected StupidClassLoader cachedClassLoader
     protected InetAddress localhostAddress = null
 
-    protected final ListOrderedMap componentLocationMap = new ListOrderedMap()
+    protected LinkedHashMap<String, ComponentInfo> componentInfoMap = new LinkedHashMap<String, ComponentInfo>()
     protected ThreadLocal<ExecutionContextImpl> activeContext = new ThreadLocal<ExecutionContextImpl>()
     protected Map<String, EntityFacadeImpl> entityFacadeByTenantMap = new HashMap<String, EntityFacadeImpl>()
     protected Map<String, WebappInfo> webappInfoMap = new HashMap()
@@ -329,11 +328,12 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         // init components referred to in component-list.component and component-dir elements in the conf file
         for (Node childNode in confXmlRoot."component-list"[0].children()) {
             if (childNode.name() == "component") {
-                initComponent((String) childNode."@name", (String) childNode."@location")
+                addComponent((String) childNode."@name", (String) childNode."@location")
             } else if (childNode.name() == "component-dir") {
-                initComponentDir((String) childNode."@location")
+                addComponentDir((String) childNode."@location")
             }
         }
+        checkSortDependentComponents()
     }
 
     protected void initClassLoader() {
@@ -707,48 +707,188 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     }
 
     @Override
-    void initComponent(String componentName, String baseLocation) throws BaseException {
-        // NOTE: how to get component name? for now use last directory name
-        if (baseLocation.endsWith('/')) baseLocation = baseLocation.substring(0, baseLocation.length()-1)
-        int lastSlashIndex = baseLocation.lastIndexOf('/')
-        if (lastSlashIndex < 0) {
-            // if this happens the component directory is directly under the runtime directory, so prefix loc with that
-            baseLocation = runtimePath + '/' + baseLocation
+    void initComponent(String location) {
+        ComponentInfo componentInfo = new ComponentInfo(location, this)
+        // check dependencies
+        if (componentInfo.dependsOnNames) for (String dependsOnName in componentInfo.dependsOnNames) {
+            if (!componentInfoMap.containsKey(dependsOnName))
+                throw new IllegalArgumentException("Component [${componentInfo.name}] depends on component [${dependsOnName}] which is not initialized")
         }
-        if (!componentName) componentName = baseLocation.substring(lastSlashIndex+1)
-
-        if (componentLocationMap.containsKey(componentName))
-            logger.warn("Overriding component [${componentName}] at [${componentLocationMap.get(componentName)}] with location [${baseLocation}] because another component of the same name was initialized.")
-        // components registered later override those registered earlier by replacing the Map entry
-        componentLocationMap.put(componentName, baseLocation)
-        logger.info("Added component [${componentName}] at [${baseLocation}]")
+        addComponent(componentInfo)
     }
 
-    protected void initComponentDir(String location) {
-        ResourceReference componentRr = new UrlResourceReference()
-        componentRr.init(location, this)
+    protected void checkSortDependentComponents() {
+        // we have an issue here where not all dependencies are declared, most are implied by component load order
+        // because of this not doing a full topological sort, just a single pass with dependencies inserted as needed
+
+        ArrayList<String> sortedNames = []
+        for (ComponentInfo componentInfo in componentInfoMap.values()) {
+            // for each dependsOn make sure component is valid, add to the list if not already there
+            // given a close starting sort order this should get us to a pretty good list
+            for (String dependsOnName in componentInfo.getRecursiveDependencies())
+                if (!sortedNames.contains(dependsOnName)) sortedNames.add(dependsOnName)
+
+            if (!sortedNames.contains(componentInfo.name)) sortedNames.add(componentInfo.name)
+        }
+
+        logger.info("Components after depends-on sort: ${sortedNames}")
+
+        // see if all dependencies are met
+        List<String> messages = []
+        for (int i = 0; i < sortedNames.size(); i++) {
+            String name = sortedNames.get(i)
+            ComponentInfo componentInfo = componentInfoMap.get(name)
+            for (String dependsOnName in componentInfo.dependsOnNames) {
+                int dependsOnIndex = sortedNames.indexOf(dependsOnName)
+                if (dependsOnIndex > i)
+                    messages.add("Broken dependency order after initial pass: [${dependsOnName}] is after [${name}]")
+            }
+        }
+
+        if (messages) {
+            StringBuilder sb = new StringBuilder()
+            for (String message in messages) {
+                logger.error(message)
+                sb.append(message).append(" ")
+            }
+            throw new IllegalArgumentException(sb.toString())
+        }
+
+        // now create a new Map and replace the original
+        Map<String, ComponentInfo> newMap = new LinkedHashMap<String, ComponentInfo>()
+        for (String sortedName in sortedNames) newMap.put(sortedName, componentInfoMap.get(sortedName))
+        componentInfoMap = newMap
+    }
+
+    protected void addComponent(ComponentInfo componentInfo) {
+        if (componentInfoMap.containsKey(componentInfo.name))
+            logger.warn("Overriding component [${componentInfo.name}] at [${componentInfoMap.get(componentInfo.name).location}] with location [${componentInfo.location}] because another component of the same name was initialized")
+        // components registered later override those registered earlier by replacing the Map entry
+        componentInfoMap.put(componentInfo.name, componentInfo)
+        logger.info("Added component [${componentInfo.name}] at [${componentInfo.location}]")
+    }
+
+    protected void addComponentDir(String location) {
+        ResourceReference componentRr = getResourceReference(location)
         // if directory doesn't exist skip it, runtime doesn't always have an component directory
         if (componentRr.getExists() && componentRr.isDirectory()) {
-            // get all files in the directory
-            TreeMap<String, ResourceReference> componentDirEntries = new TreeMap<String, ResourceReference>()
-            for (ResourceReference componentSubRr in componentRr.getDirectoryEntries()) {
-                // if it's a directory and doesn't start with a "." then add it as a component dir
-                if (!componentSubRr.isDirectory() || componentSubRr.getFileName().startsWith(".")) continue
-                componentDirEntries.put(componentSubRr.getFileName(), componentSubRr)
+            // see if there is a components.xml file, if so load according to it instead of all sub-directories
+            ResourceReference cxmlRr = getResourceReference(location + "/components.xml")
+
+            if (cxmlRr.getExists()) {
+                Node componentList = new XmlParser().parse(cxmlRr.openStream())
+                for (Node childNode in componentList.children()) {
+                    if (childNode.name() == 'component') {
+                        ComponentInfo componentInfo = new ComponentInfo(location, childNode, this)
+                        addComponent(componentInfo)
+                    } else if (childNode.name() == 'component-dir') {
+                        String locAttr = childNode.attribute("location")
+                        addComponentDir(location + "/" + locAttr)
+                    }
+                }
+            } else {
+                // get all files in the directory
+                TreeMap<String, ResourceReference> componentDirEntries = new TreeMap<String, ResourceReference>()
+                for (ResourceReference componentSubRr in componentRr.getDirectoryEntries()) {
+                    // if it's a directory and doesn't start with a "." then add it as a component dir
+                    if (!componentSubRr.isDirectory() || componentSubRr.getFileName().startsWith(".")) continue
+                    componentDirEntries.put(componentSubRr.getFileName(), componentSubRr)
+                }
+                for (Map.Entry<String, ResourceReference> componentDirEntry in componentDirEntries) {
+                    ComponentInfo componentInfo = new ComponentInfo(componentDirEntry.getValue().getLocation(), this)
+                    this.addComponent(componentInfo)
+                }
             }
-            for (Map.Entry<String, ResourceReference> componentDirEntry in componentDirEntries) {
-                this.initComponent(null, componentDirEntry.getValue().getLocation())
+        }
+    }
+
+    protected ResourceReference getResourceReference(String location) {
+        // TODO: somehow support other resource location types
+        // the ResourceFacade inits after components are loaded (so it is aware of initial components), so we can't get ResourceReferences from it
+        ResourceReference rr = new UrlResourceReference()
+        rr.init(location, this)
+        return rr
+    }
+
+    static class ComponentInfo {
+        ExecutionContextFactoryImpl ecfi
+        String name
+        String location
+        Set<String> dependsOnNames = new LinkedHashSet<String>()
+        ComponentInfo(String baseLocation, Node componentNode, ExecutionContextFactoryImpl ecfi) {
+            this.ecfi = ecfi
+            String curLoc = null
+            if (baseLocation) curLoc = baseLocation + "/" + componentNode.attribute("location")
+            init(curLoc, componentNode)
+        }
+        ComponentInfo(String location, ExecutionContextFactoryImpl ecfi) {
+            this.ecfi = ecfi
+            init(location, null)
+        }
+        protected void init(String specLoc, Node origNode) {
+            location = specLoc ?: origNode?.attribute("location")
+            if (!location) throw new IllegalArgumentException("Cannot init component with no location (not specified or found in component.@location)")
+
+            // clean up the location
+            if (location.endsWith('/')) location = location.substring(0, location.length()-1)
+            int lastSlashIndex = location.lastIndexOf('/')
+            if (lastSlashIndex < 0) {
+                // if this happens the component directory is directly under the runtime directory, so prefix loc with that
+                location = ecfi.runtimePath + '/' + location
             }
+            // set the default component name
+            name = location.substring(lastSlashIndex+1)
+
+            // make sure directory exists
+            ResourceReference compRr = ecfi.getResourceReference(location)
+            if (!compRr.getExists()) throw new IllegalArgumentException("Could not find component directory at: ${location}")
+            if (!compRr.isDirectory()) throw new IllegalArgumentException("Component location is not a directory: ${location}")
+
+            // see if there is a component.xml file, if so use that as the componentNode instead of origNode
+            ResourceReference compXmlRr = ecfi.getResourceReference(location + "/component.xml")
+            Node componentNode
+            if (compXmlRr.getExists()) {
+                componentNode = new XmlParser().parse(compXmlRr.openStream())
+            } else {
+                componentNode = origNode
+            }
+
+            if (componentNode != null) {
+                String nameAttr = componentNode.attribute("name")
+                if (nameAttr) name = nameAttr
+                if (componentNode["depends-on"]) for (Node dependsOnNode in componentNode["depends-on"]) {
+                    dependsOnNames.add((String) dependsOnNode.attribute("name"))
+                }
+            }
+        }
+
+        List<String> getRecursiveDependencies() {
+            List<String> dependsOnList = []
+            for (String dependsOnName in dependsOnNames) {
+                ComponentInfo depCompInfo = ecfi.componentInfoMap.get(dependsOnName)
+                if (depCompInfo == null)
+                    throw new IllegalArgumentException("Component [${name}] depends on component [${dependsOnName}] which is not initialized")
+                List<String> childDepList = depCompInfo.getRecursiveDependencies()
+                for (String childDep in childDepList)
+                    if (!dependsOnList.contains(childDep)) dependsOnList.add(childDep)
+
+                if (!dependsOnList.contains(dependsOnName)) dependsOnList.add(dependsOnName)
+            }
+            return dependsOnList
         }
     }
 
     @Override
-    void destroyComponent(String componentName) throws BaseException { componentLocationMap.remove(componentName) }
+    void destroyComponent(String componentName) throws BaseException { componentInfoMap.remove(componentName) }
 
     @Override
     @CompileStatic
-    Map<String, String> getComponentBaseLocations() {
-        return Collections.unmodifiableMap(componentLocationMap)
+    LinkedHashMap<String, String> getComponentBaseLocations() {
+        LinkedHashMap<String, String> compLocMap = new LinkedHashMap<String, String>()
+        for (ComponentInfo componentInfo in componentInfoMap.values()) {
+            compLocMap.put(componentInfo.name, componentInfo.location)
+        }
+        return compLocMap
     }
 
     @Override

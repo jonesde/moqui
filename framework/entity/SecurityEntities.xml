@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -210,6 +210,7 @@ along with this software (see the LICENSE.md file). If not, see
             <description>The username used along with the password to login</description></field>
         <field name="userFullName" type="text-medium"><description>User's first, middle, last, etc name</description></field>
         <field name="currentPassword" type="text-medium"/>
+        <field name="resetPassword" type="text-medium"><description>Set to random password for password reset, can be used only to update password</description></field>
         <field name="passwordSalt" type="text-medium"/>
         <field name="passwordHashType" type="text-short"/>
         <field name="passwordSetDate" type="date-time"/>

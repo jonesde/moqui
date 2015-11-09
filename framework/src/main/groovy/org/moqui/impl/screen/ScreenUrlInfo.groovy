@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -604,6 +604,7 @@ class ScreenUrlInfo {
 
         Map<String, String> otherParameterMap = new HashMap<String, String>()
         Map transitionAliasParameters = null
+        Map<String, String> allParameterMap = null
 
         UrlInstance(ScreenUrlInfo sui, ScreenRenderImpl sri, Boolean expandAliasTransition) {
             this.sui = sui
@@ -673,18 +674,20 @@ class ScreenUrlInfo {
         String getScreenPathUrl() { return sui.getScreenPathUrlWithBase(sui.getBaseUrl(sri)) }
 
         Map<String, String> getParameterMap() {
-            Map<String, String> pm = new HashMap()
+            if (allParameterMap != null) return allParameterMap
+
+            allParameterMap = new HashMap<>()
             // get default parameters for the target screen
             if (sui.targetScreen != null) {
                 for (ParameterItem pi in sui.targetScreen.getParameterMap().values()) {
                     Object value = pi.getValue(ec)
-                    if (value) pm.put(pi.name, StupidUtilities.toPlainString(value))
+                    if (value) allParameterMap.put(pi.name, StupidUtilities.toPlainString(value))
                 }
             }
             if (targetTransition != null && targetTransition.getParameterMap()) {
                 for (ParameterItem pi in targetTransition.getParameterMap().values()) {
                     Object value = pi.getValue(ec)
-                    if (value) pm.put(pi.name, StupidUtilities.toPlainString(value))
+                    if (value) allParameterMap.put(pi.name, StupidUtilities.toPlainString(value))
                 }
             }
             if (targetTransition != null && targetTransition.getSingleServiceName()) {
@@ -694,7 +697,7 @@ class ScreenUrlInfo {
                     for (String pn in sd.getInParameterNames()) {
                         Object value = ec.getContext().get(pn)
                         if (!value && ec.getWeb() != null) value = ec.getWeb().getParameters().get(pn)
-                        if (value) pm.put(pn, StupidUtilities.toPlainString(value))
+                        if (value) allParameterMap.put(pn, StupidUtilities.toPlainString(value))
                     }
                 } else if (targetServiceName.contains("#")) {
                     // service name but no service def, see if it is an entity op and if so try the pk fields
@@ -706,21 +709,21 @@ class ScreenUrlInfo {
                             for (String fn in ed.getPkFieldNames()) {
                                 Object value = ec.getContext().get(fn)
                                 if (!value && ec.getWeb() != null) value = ec.getWeb().getParameters().get(fn)
-                                if (value) pm.put(fn, StupidUtilities.toPlainString(value))
+                                if (value) allParameterMap.put(fn, StupidUtilities.toPlainString(value))
                             }
                         }
                     }
                 }
             }
             // add all of the parameters specified inline in the screen path or added after
-            if (sui.pathParameterMap) pm.putAll(sui.pathParameterMap)
+            if (sui.pathParameterMap) allParameterMap.putAll(sui.pathParameterMap)
             // add transition parameters, for alias transitions
-            if (transitionAliasParameters) pm.putAll(transitionAliasParameters)
+            if (transitionAliasParameters) allParameterMap.putAll(transitionAliasParameters)
             // add all parameters added to the instance after
-            pm.putAll(otherParameterMap)
+            allParameterMap.putAll(otherParameterMap)
 
             // logger.info("TOREMOVE Getting parameterMap [${pm}] for targetScreen [${targetScreen.location}]")
-            return pm
+            return allParameterMap
         }
 
         String getParameterString() {
@@ -746,13 +749,18 @@ class ScreenUrlInfo {
 
         UrlInstance addParameter(Object name, Object value) {
             if (!name || value == null) return this
-            otherParameterMap.put(name as String, StupidUtilities.toPlainString(value))
+            String parmValue = StupidUtilities.toPlainString(value)
+            otherParameterMap.put(name as String, parmValue)
+            if (allParameterMap != null) allParameterMap.put(name as String, parmValue)
             return this
         }
         UrlInstance addParameters(Map manualParameters) {
             if (!manualParameters) return this
             for (Map.Entry mpEntry in manualParameters.entrySet()) {
-                otherParameterMap.put(mpEntry.getKey() as String, StupidUtilities.toPlainString(mpEntry.getValue()))
+                String parmKey = mpEntry.getKey() as String
+                String parmValue = StupidUtilities.toPlainString(mpEntry.getValue())
+                otherParameterMap.put(parmKey, parmValue)
+                if (allParameterMap != null) allParameterMap.put(parmKey, parmValue)
             }
             return this
         }

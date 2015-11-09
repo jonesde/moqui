@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -70,6 +70,11 @@ class ContentResourceReference extends BaseResourceReference {
         Property dataProperty = contentNode.getProperty("jcr:data")
         if (dataProperty == null) throw new IllegalArgumentException("Cannot get stream for content at [${repositoryName}][${nodePath}], has no jcr:content.jcr:data property")
         return dataProperty.binary.stream
+    }
+
+    @Override
+    OutputStream getOutputStream() {
+        throw new UnsupportedOperationException("The getOutputStream method is not supported for JCR, use putStream() instead")
     }
 
     @Override

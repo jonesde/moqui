@@ -2,22 +2,131 @@
 Moqui Framework Release Notes
 
 ===========================================================================
-Release 1.5.3 - TBD
+Release 1.5.4 - TODO
 ===========================================================================
 
-Moqui Framework 1.5.3 is a minor new feature and bug fix release.
+Moqui Framework 1.5.4 is a minor new feature and bug fix release.
 
 TODO
 
 New Features:
 
-- Updated Apache Camel to 2.15.3, Apache Commons Codec to 1.10, Apache
-  Commons Email to 1.4, Apache Commons File Upload to 1.3.1, Apache Commons
-  Validator to 1.4.1, Apache Jackrabbit to 2.10.1, Apache Shiro to 1.2.4,
-  Drools and KIE to 6.2.0.Final,  Elasticsearch to 1.7.1,
-  Ehcache to 2.10.0, Freemarker to 2.3.23, Groovy to 2.4.4,
-  Liquibase to 3.4.1, OrientDB to 2.1.0, SLF4J to 1.7.12, other misc
-  updates
+- Library Updates
+  - Apache Camel to 2.16.0
+  - Apache Derby to 10.12.1.1
+  - Apache HttpClient to 4.5.1
+  - Apache Jackrabbit to 2.11.1
+  - Ehcache to 2.10.1
+  - ElasticSearch to 1.7.3
+  - Groovy to 2.4.5
+  - H2 to 1.4.190
+  - JNA to 4.2.1
+  - JavaMail to 1.5.4
+  - KIE, Drools to 6.3.0.Final
+  - Log4J to 2.4.1
+  - OrientDB to 2.1.4
+  - Quartz Scheduler to 2.2.2
+- Components may now have a component.xml with a single component element,
+  the same component element that is used in the Moqui Conf XML file; if a
+  name is specified it will override the directory name; added a depends-on
+  element which modifies the component order at runtime
+- Component directories (referred to by component-list.component-dir in the
+  Moqui Conf XML file) now supports a components.xml file (must use that
+  filename) to specify which components to load and in which order
+- Better protection against CSRF/XSRF attaches with a session token as per
+  https://www.owasp.org/index.php/CSRF_Prevention_Cheat_Sheet;
+  - when enabled (webapp.@require-session-token in Moqui Conf XML file not
+    false) a moquiSessionToken parameter must be passed
+  - applies to all transition requests with actions by all methods except,
+    GET after the first request in a session
+  - for REST/etc API calls with authentication for each call is ignored
+  - can be disabled per screen transition with @require-session-token=false
+- Password reset now sets a reset password separate from the current
+  password that may only be used to change the password; current password
+  stays valid for password change or login (if email-require-change=false)
+- New concept of explicit master entity definitions with details made up of
+  related entities; definitions go in new entity.master element; there are
+  new methods in EntityValue, EntityList, and EntityFind to get value Maps
+  for the master record plus all details
+- Various improvements to email message polling (calling EM-ECA rules)
+  including support for Java System Properties pass through and fix for
+  password pass through for IMAPS/etc
+- Email ECA structure significantly improved, for details see the
+  org.moqui.EmailServices.process#EmailEca service interface
+- Improved sending EmailTemplate with support for reply to and bounce
+  addresses from EmailTemplate and CC/BCC addresses from both EmailTemplate
+  and service parameters
+- Localized strings may now contain a double hash (##) to specify context
+  where a single word in the default language (ie English) is ambiguous; at
+  runtime if no matching LocalizedMessage is found the text before the
+  double hash will be used to lookup records or as the default value
+- Added field.@create-only attribute, defaults to entity.@create-only
+  value, create only now checked at field level on update (only at entity
+  level on delete)
+- When a form-single is rendered the form map is added to a pushed
+  (isolated) context and popped after; field values can now be referenced
+  directly in expressions in @condition, @text, etc attributes
+- All XML Form field widgets now support expanded tooltip
+- Added json-schema for Entity REST API: for all entities get
+  /rest/schema.json, for a single entity get /rest/schema/${name}.json
+- Added RAML API definition for Entity REST API at /rest/schema.raml
+- SystemMessage entity has additional fields to identify messages
+- Changed receive#SystemMessage to an interface, now use
+  receive#IncomingSystemMessage for remote calls, will call the
+  SystemMessageType.receiveServiceName service if specified to save message
+- Added EDI handler (parser and generator), used in Mantle for X12 messages
+
+Bug Fixes:
+
+- Fixed issue in the Tools EntityDetail screen where entities with many
+  dependents (like Enumeration, Uom, etc) caused an out of memory error;
+  GitHub issue #149
+- Fixed XML Actions FTL error for entity-find.@having-econditions
+- Fixed issue where ResourceFacadeImpl.setInContext localized values when
+  expanding; caused problems with set elements in widget-template-include
+- Fixed issue with multiple render-mode elements where there is no
+  text.@type attribute; GitHub issue #158
+
+===========================================================================
+Release 1.5.3 - 11 Sep 2015
+===========================================================================
+
+Moqui Framework 1.5.3 is a minor new feature and bug fix release.
+
+This release includes various smaller improvements and bug fixes, and a
+number of library updates. There are no significant new features but many
+smaller improvements and cleanups.
+
+There are around 400 commits since the last release and an increase in size
+from around 65k lines to around 67k lines of text (primarily Java, Groovy,
+XML, XSD, and FTL files; not including files from other projects). The
+System and Tools apps have 56 screens and 121 forms. Moqui has 127 entities
+and 70 services.
+
+New Features:
+
+- Library Updates
+  - Apache Camel to 2.15.3
+  - Apache Commons Codec to 1.10
+  - Apache Commons CSV to 1.2
+  - Apache Commons Email to 1.4
+  - Apache Commons File Upload to 1.3.1
+  - Apache Commons Validator to 1.4.1
+  - Apache FOP to 2.0 (with Batik 1.8 and XML Graphics Commons 2.0.1)
+  - Apache HTTP Core to 4.4.3
+  - Apache HTTP Client to 4.5
+  - Apache Jackrabbit to 2.10.1
+  - Apache Shiro to 1.2.4
+  - Drools and KIE to 6.2.0.Final
+  - Elasticsearch to 1.7.1
+  - Ehcache to 2.10.0
+  - Freemarker to 2.3.23
+  - Groovy to 2.4.4
+  - Liquibase to 3.4.1
+  - OrientDB to 2.1.2
+  - OWASP ESAPI to 2.1.0 (with AntiSamy 1.5.3)
+  - SLF4J to 1.7.12
+  - other misc updates
 
 - Added Travis CI configuration for continuous integration testing, now
   setup for the moqui/moqui project with a badge reporting status
@@ -78,6 +187,9 @@ Bug Fixes:
   trimmed because no matching field was in the fields to select
 - XML Actions ${iterate.@entry}_hasNext is now _has_next to be more
   consistent with section-iterate and others using this FTL inspired name
+- Fixed issue with select column names when doing a distinct query with
+  upper cased order by fields, now adds function to select clause as well
+  as order by clause (GitHub issue #146)
 
 
 ===========================================================================
@@ -2005,7 +2117,6 @@ Features considered, but may not to be included in 1.x series
   - Auto Screen
     - Editable data grid, created by form-list, for detail and assoc related entities
   - Entity
-    - EntitySync UI in tools app
     - Entity model internal check (relationship, view-link.key-map, ?)
     - Database meta-data check/report against entity definitions; NOTE: use LiquiBase for this
   - Script Run (or groovy shell?)
@@ -2013,10 +2124,39 @@ Features considered, but may not to be included in 1.x series
     - Configure and run chain of services (dynamic wizard)
   - Artifact Info screens (with in/out references for all)
     - Screen tree and graph browse screen
-    - Entity info screen
     - Entity usage/reference section
     - Service usage/reference section on ServiceDetail screen
   - Screen to install a component (upload and register, load data from it; require special permission for this, not enabled on the demo server)
+
+- Integration
+  - OData (http://www.odata.org) compliant entity auto REST API
+    - like current but use OData URL structure, query parameters, etc
+    - mount on /odata4 as alternative to existing /rest
+    - generate EDMX for all entities (and exported services?)
+  x Generate RAML (http://raml.org) with json-schema (http://json-schema.org) (others: Swagger, RSDL) for all entities to use with entity REST API
+    x get: \ queryParameters: \ ${pk/etc}: \ (type:, required:, etc)
+    x get: \ responses: \ 200: \ body: \ application/json: \ schema: !include schema/${name}.json
+    x nested like: /orders: \ /${orderId}: \ /orderItems: \ ...
+    - see MuleSoft, other tools
+  - Generate json-schema (http://json-schema.org) documents, make available through entity REST API
+    x URL pattern? maybe /rest/schema (or /rest/schema.json) for all
+    x for particular entity: /rest/schema/${name}.json or just /rest/schema/${name}
+    x MIME type: application/schema+json
+    x use hyper schema links to describe API options
+  - Generate minimal Data Document based on changes (per TX possible, runs async so not really; from existing doc, like current ES doc)
+  - Update database from Data Document
+  - Data Document UI
+    - show/edit field, rel alias, condition, link
+    - special form for add (edit?) field with 5 drop-downs for relationships, one for field, all updated based on master entity and previous selections
+  - Service REST API
+    - goal to define service mappings to REST path, method, etc for:
+      - json-schema and RAML descriptors
+      - handling service calls through generic transition like /rest/v1, instead of explicit transitions like ExampleApp.xml
+    - use structure somewhat similar to RAML (maybe use RAML with extensions?)
+    - define resources, sub-resources (including IDs in path)
+    - specify method and service name for that method
+    - from service: in-parameters (RAML queryParameters, json-schema), description, out-parameters (json-schema)
+    - authz at service level, like other interfaces
 
 - Atomikos
   - http://www.atomikos.com/Main/InstallingTransactionsEssentials

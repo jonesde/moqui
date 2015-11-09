@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -24,9 +24,15 @@ public interface ArtifactExecutionFacade {
      */
     ArtifactExecutionInfo peek();
 
-    ArtifactExecutionInfo pop();
+    /** Push onto the artifact stack. This is generally called internally by the framework and does not need to be used
+     * in application code. */
     void push(ArtifactExecutionInfo aei, boolean requiresAuthz);
+    /** Pop from the artifact stack and verify it is the same artifact name and type. This is generally called internally
+     * by the framework and does not need to be used in application code. */
+    ArtifactExecutionInfo pop(ArtifactExecutionInfo aei);
     void push(String name, String typeEnumId, String actionEnumId, boolean requiresAuthz);
+    @Deprecated
+    ArtifactExecutionInfo pop();
 
     /** Gets a stack/deque/list of objects representing artifacts that have been executed to get to the current artifact.
      * The bottom artifact in the stack will generally be a screen or a service. If a service is run locally

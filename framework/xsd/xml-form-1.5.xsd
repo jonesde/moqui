@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -146,7 +146,7 @@ along with this software (see the LICENSE.md file). If not, see
             <xs:attribute name="transition" type="xs:string">
                 <xs:annotation><xs:documentation>The transition in the current screen to submit the form to.</xs:documentation></xs:annotation>
             </xs:attribute>
-            <xs:attribute name="multi" default="true" type="boolean">
+            <xs:attribute name="multi" default="false" type="boolean">
                 <xs:annotation><xs:documentation>Make the form a multi-submit form where all rows on a page are
                     submitted together in a single request with a "_${rowNumber}" suffix on each field. Also passes a
                     _isMulti=true parameter so the Service Facade knows to run the service (a single service-call in a
@@ -742,7 +742,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </xs:choice>
             </xs:sequence>
             <xs:attribute name="allow-empty" type="xs:string" default="false"/>
-            <xs:attribute name="allow-multiple" type="boolean" default="false"/>
+            <xs:attribute name="allow-multiple" type="xs:string" default="false"/>
             <xs:attribute name="size" type="xs:integer" default="1"/>
             <xs:attribute name="current" default="first-in-list">
                 <xs:simpleType>

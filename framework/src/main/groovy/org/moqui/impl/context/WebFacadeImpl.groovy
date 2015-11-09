@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -15,34 +15,36 @@ package org.moqui.impl.context
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
-import org.moqui.context.ArtifactAuthorizationException
-import org.moqui.context.ArtifactTarpitException
-import org.moqui.context.ContextStack
-import org.moqui.context.ResourceReference
-import org.moqui.context.ValidationError
+
+import org.apache.commons.codec.binary.Base64
+import org.apache.commons.fileupload.FileItem
+import org.apache.commons.fileupload.FileItemFactory
+import org.apache.commons.fileupload.disk.DiskFileItemFactory
+import org.apache.commons.fileupload.servlet.ServletFileUpload
+
+import org.moqui.context.*
 import org.moqui.entity.EntityNotFoundException
 import org.moqui.entity.EntityValueNotFoundException
 import org.moqui.impl.StupidUtilities
+import org.moqui.impl.StupidWebUtilities
+import org.moqui.impl.context.ExecutionContextFactoryImpl.WebappInfo
+import org.moqui.impl.entity.EntityDefinition
+import org.moqui.impl.entity.EntityFacadeImpl
 import org.moqui.impl.screen.ScreenDefinition
 import org.moqui.impl.screen.ScreenUrlInfo
-
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
-import javax.servlet.http.HttpSession
-import javax.servlet.ServletContext
-
-import org.apache.commons.fileupload.disk.DiskFileItemFactory
-import org.apache.commons.fileupload.servlet.ServletFileUpload
-import org.apache.commons.fileupload.FileItemFactory
-import org.apache.commons.fileupload.FileItem
-import org.moqui.context.WebFacade
-import org.moqui.impl.context.ExecutionContextFactoryImpl.WebappInfo
 import org.moqui.impl.service.ServiceJsonRpcDispatcher
 import org.moqui.impl.service.ServiceXmlRpcDispatcher
-import org.moqui.impl.StupidWebUtilities
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.Yaml
+
+import javax.servlet.ServletContext
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
+import javax.servlet.http.HttpSession
+import java.security.SecureRandom
 
 /** This class is a facade to easily get information from and about the web context. */
 class WebFacadeImpl implements WebFacade {
@@ -136,7 +138,7 @@ class WebFacadeImpl implements WebFacade {
 
             for (FileItem item in items) {
                 if (item.isFormField()) {
-                    multiPartParameters.put(item.getFieldName(), item.getString())
+                    multiPartParameters.put(item.getFieldName(), item.getString("UTF-8"))
                 } else {
                     // put the FileItem itself in the Map to be used by the application code
                     multiPartParameters.put(item.getFieldName(), item)
@@ -165,7 +167,22 @@ class WebFacadeImpl implements WebFacade {
                 }
             }
         }
+
+        // create the session token if needed (protection against CSRF/XSRF attacks; see ScreenRenderImpl)
+        String sessionToken = session.getAttribute("moqui.session.token")
+        if (!sessionToken) {
+            SecureRandom sr = new SecureRandom()
+            byte[] randomBytes = new byte[20]
+            sr.nextBytes(randomBytes)
+            sessionToken = Base64.encodeBase64URLSafeString(randomBytes)
+            session.setAttribute("moqui.session.token", sessionToken)
+            request.setAttribute("moqui.session.token.created", "true")
+        }
     }
+
+    @Override
+    @CompileStatic
+    String getSessionToken() { return session.getAttribute("moqui.session.token") }
 
     // ExecutionContextImpl getEci() { eci }
     void runFirstHitInVisitActions() {
@@ -190,14 +207,14 @@ class WebFacadeImpl implements WebFacade {
     }
 
     @CompileStatic
-    void saveScreenHistory(ScreenUrlInfo.UrlInstance urlInstance) {
-        ScreenUrlInfo sui = urlInstance.sui
-        ScreenDefinition targetScreen = urlInstance.sui.targetScreen
+    void saveScreenHistory(ScreenUrlInfo.UrlInstance urlInstanceOrig) {
+        ScreenUrlInfo sui = urlInstanceOrig.sui
+        ScreenDefinition targetScreen = urlInstanceOrig.sui.targetScreen
 
         // don't save standalone screens
         if (sui.lastStandalone || targetScreen.isStandalone()) return
         // don't save transition requests, just screens
-        if (urlInstance.getTargetTransition() != null) return
+        if (urlInstanceOrig.getTargetTransition() != null) return
 
         LinkedList<Map> screenHistoryList = (LinkedList<Map>) session.getAttribute("moqui.screen.history")
         if (screenHistoryList == null) {
@@ -205,7 +222,12 @@ class WebFacadeImpl implements WebFacade {
             session.setAttribute("moqui.screen.history", screenHistoryList)
         }
 
+        ScreenUrlInfo.UrlInstance urlInstance = urlInstanceOrig.cloneUrlInstance()
+        // ignore the page index for history
+        urlInstance.getParameterMap().remove("pageIndex")
+        // logger.warn("======= parameters: ${urlInstance.getParameterMap()}")
         String urlWithParams = urlInstance.getUrlWithParams()
+        // logger.warn("======= urlWithParams: ${urlWithParams}")
 
         // if is the same as last screen skip it
         Map firstItem = screenHistoryList.size() > 0 ? screenHistoryList.get(0) : null
@@ -233,12 +255,16 @@ class WebFacadeImpl implements WebFacade {
             if (parameters) {
                 nameBuilder.append(' (')
                 int pCount = 0
-                Iterator<String> valueIter = parameters.values().iterator()
-                while (valueIter.hasNext() && pCount < 2) {
+                Iterator<Map.Entry<String, String>> entryIter = parameters.entrySet().iterator()
+                while (entryIter.hasNext() && pCount < 2) {
+                    Map.Entry<String, String> entry = entryIter.next()
+                    if (entry.key.contains("_op")) continue
+                    if (entry.key.contains("_not")) continue
+                    if (entry.key.contains("_ic")) continue
+                    if (!entry.value.trim()) continue
+                    nameBuilder.append(entry.value)
                     pCount++
-                    String pv = valueIter.next()
-                    nameBuilder.append(pv)
-                    if (valueIter.hasNext() && pCount < 2) nameBuilder.append(', ')
+                    if (entryIter.hasNext() && pCount < 2) nameBuilder.append(', ')
                 }
                 nameBuilder.append(')')
             }
@@ -282,8 +308,11 @@ class WebFacadeImpl implements WebFacade {
         declaredPathParameters.put(name, value)
     }
 
+    @CompileStatic
     List<String> getSavedMessages() { return savedMessages }
+    @CompileStatic
     List<String> getSavedErrors() { return savedErrors }
+    @CompileStatic
     List<ValidationError> getSavedValidationErrors() { return savedValidationErrors }
 
     @Override
@@ -525,7 +554,7 @@ class WebFacadeImpl implements WebFacade {
                 } else {
                     jb.call((Object) responseObj)
                 }
-                jsonStr = jb.toString()
+                jsonStr = jb.toPrettyString()
                 response.setStatus(HttpServletResponse.SC_OK)
             } else {
                 jsonStr = ""
@@ -558,7 +587,10 @@ class WebFacadeImpl implements WebFacade {
 
     @Override
     @CompileStatic
-    void sendTextResponse(String text) {
+    void sendTextResponse(String text) { sendTextResponse(text, "text/plain") }
+    @Override
+    @CompileStatic
+    void sendTextResponse(String text, String contentType) {
         String responseText
         if (eci.getMessage().hasError()) {
             responseText = eci.message.errorsString
@@ -568,7 +600,7 @@ class WebFacadeImpl implements WebFacade {
             response.setStatus(HttpServletResponse.SC_OK)
         }
 
-        response.setContentType("text/plain")
+        response.setContentType(contentType)
         // NOTE: String.length not correct for byte length
         String charset = response.getCharacterEncoding() ?: "UTF-8"
         int length = responseText ? responseText.getBytes(charset).length : 0
@@ -577,6 +609,12 @@ class WebFacadeImpl implements WebFacade {
         try {
             if (responseText) response.writer.write(responseText)
             response.writer.flush()
+            if (logger.infoEnabled) {
+                Long startTime = (Long) requestAttributes.get("moquiRequestStartTime")
+                String timeMsg = ""
+                if (startTime) timeMsg = "in [${(System.currentTimeMillis()-startTime)/1000}] seconds"
+                logger.info("Sent text (${contentType}) response of length [${length}] with [${charset}] encoding ${timeMsg} for ${request.getMethod()} request to ${request.getPathInfo()}")
+            }
         } catch (IOException e) {
             logger.error("Error sending text response", e)
         }
@@ -591,7 +629,7 @@ class WebFacadeImpl implements WebFacade {
         if (rr == null) throw new IllegalArgumentException("Resource not found at: ${location}")
         response.setContentType(rr.contentType)
         if (inline) response.addHeader("Content-Disposition", "inline")
-        else response.addHeader("Content-Disposition", "attachment; filename=\"${rr.getFileName()}\"")
+        else response.addHeader("Content-Disposition", "attachment; filename=\"${rr.getFileName()}\"; filename*=utf-8''${StupidUtilities.encodeAsciiFilename(rr.getFileName())}")
         InputStream is = rr.openStream()
         try {
             OutputStream os = response.outputStream
@@ -700,6 +738,109 @@ class WebFacadeImpl implements WebFacade {
             logger.warn((String) "General error in entity REST: " + t.toString(), t)
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, errorMessage)
         }
+    }
+
+    @Override
+    @CompileStatic
+    void handleEntityRestSchema(List<String> extraPathNameList, String schemaUri, String linkPrefix, String schemaLinkPrefix) {
+        // make sure a user is logged in, screen/etc that calls will generally be configured to not require auth
+        if (!eci.getUser().getUsername()) {
+            // if there was a login error there will be a MessageFacade error message
+            String errorMessage = eci.message.errorsString
+            if (!errorMessage) errorMessage = "Authentication required for entity REST schema"
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, errorMessage)
+            return
+        }
+
+        EntityFacadeImpl efi = eci.getEcfi().getEntityFacade()
+
+        if (extraPathNameList.size() < 1) {
+            List allRefList = []
+            Map definitionsMap = [:]
+            definitionsMap.put('paginationParameters', EntityDefinition.paginationParameters)
+            Map rootMap = ['$schema':'http://json-schema.org/draft-04/hyper-schema#', title:'Moqui Entity REST API',
+                    anyOf:allRefList, definitions:definitionsMap]
+            if (schemaUri) rootMap.put('id', schemaUri)
+
+            Set<String> entityNameSet = efi.getAllNonViewEntityNames()
+            for (String entityName in entityNameSet) {
+                EntityDefinition ed = efi.getEntityDefinition(entityName)
+                String refName = ed.getShortAlias() ?: ed.getFullEntityName()
+                allRefList.add(['$ref':"#/definitions/${refName}"])
+
+                Map schema = ed.getJsonSchema(false, null, schemaUri, linkPrefix, schemaLinkPrefix)
+                definitionsMap.put(refName, schema)
+            }
+
+            JsonBuilder jb = new JsonBuilder()
+            jb.call(rootMap)
+            String jsonStr = jb.toPrettyString()
+
+            sendTextResponse(jsonStr, "application/schema+json")
+        } else {
+            String entityName = extraPathNameList.get(0)
+            if (entityName.endsWith(".json")) entityName = entityName.substring(0, entityName.length() - 5)
+            try {
+                EntityDefinition ed = efi.getEntityDefinition(entityName)
+                if (ed == null) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "No entity found with name or alias [${entityName}]")
+                    return
+                }
+
+                Map schema = ed.getJsonSchema(true, null, schemaUri, linkPrefix, schemaLinkPrefix)
+                // TODO: support array wrapper (different URL? suffix?) with [type:'array', items:schema]
+
+                // sendJsonResponse(schema)
+                JsonBuilder jb = new JsonBuilder()
+                jb.call(schema)
+                String jsonStr = jb.toPrettyString()
+
+                sendTextResponse(jsonStr, "application/schema+json")
+            } catch (EntityNotFoundException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "No entity found with name or alias [${entityName}]")
+            }
+        }
+    }
+
+    @Override
+    @CompileStatic
+    void handleEntityRestRaml(List<String> extraPathNameList, String linkPrefix, String schemaLinkPrefix) {
+        // make sure a user is logged in, screen/etc that calls will generally be configured to not require auth
+        if (!eci.getUser().getUsername()) {
+            // if there was a login error there will be a MessageFacade error message
+            String errorMessage = eci.message.errorsString
+            if (!errorMessage) errorMessage = "Authentication required for entity REST schema"
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, errorMessage)
+            return
+        }
+
+        EntityFacadeImpl efi = eci.getEcfi().getEntityFacade()
+
+        List<Map> schemasList = []
+        Map<String, Object> rootMap = [title:'Moqui Entity REST API', version:'v1', baseUri:linkPrefix,
+                                       mediaType:'application/json', schemas:schemasList] as Map<String, Object>
+        rootMap.put('traits', [[paged:[queryParameters:EntityDefinition.ramlPaginationParameters]]])
+
+        Set<String> entityNameSet = efi.getAllNonViewEntityNames()
+        for (String entityName in entityNameSet) {
+            EntityDefinition ed = efi.getEntityDefinition(entityName)
+            String refName = ed.getShortAlias() ?: ed.getFullEntityName()
+            schemasList.add([(refName):"!include ${schemaLinkPrefix}/${refName}.json".toString()])
+
+            Map ramlApi = ed.getRamlApi()
+            rootMap.put('/' + refName, ramlApi)
+        }
+
+        DumperOptions options = new DumperOptions()
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK)
+        // default: options.setDefaultScalarStyle(DumperOptions.ScalarStyle.PLAIN)
+        options.setPrettyFlow(true)
+        Yaml yaml = new Yaml(options)
+        String yamlString = yaml.dump(rootMap)
+        // add beginning line "#%RAML 0.8", more efficient way to do this?
+        yamlString = "#%RAML 0.8\n" + yamlString
+
+        sendTextResponse(yamlString, "application/raml+yaml")
     }
 
 

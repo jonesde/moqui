@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -196,24 +196,52 @@ along with this software (see the LICENSE.md file). If not, see
         <field name="systemMessageTypeId" type="id"/>
         <field name="statusId" type="id" enable-audit-log="true"/>
         <field name="isOutgoing" type="text-indicator"/>
-        <field name="initDate" type="date-time"><description>For incoming the received date, for outgoing the produced date.</description></field>
-        <field name="processedDate" type="date-time"><description>For incoming the consumed date, for outgoing the sent date.</description></field>
+        <field name="initDate" type="date-time"><description>For incoming the received date, for outgoing the produced date</description></field>
+        <field name="processedDate" type="date-time"><description>For incoming the consumed date, for outgoing the sent date</description></field>
         <field name="lastAttemptDate" type="date-time"/>
         <field name="failCount" type="number-integer"/>
+        <field name="parentMessageId" type="id"><description>If a received message is split this is the original combined message</description></field>
+        <field name="ackMessageId" type="id"><description>The message received or sent to acknowledge this message</description></field>
+        <field name="remoteMessageId" type="text-medium"><description>For messages to/from another Moqui system, the
+            systemMessageId on the remote system; may also be used for other system level message IDs (as opposed to
+            messageId which is for the ID in the envelope of the message)</description></field>
+        <field name="systemMessageRemoteId" type="id"><description>Reference to the SystemMessageRemote record to
+            use for sending, etc</description></field>
+
         <field name="messageText" type="text-very-long"/>
-        <field name="remoteMessageId" type="text-medium"/>
-        <field name="systemMessageRemoteId" type="id"/>
-        <!-- the follow are useful for many types of messages, but come specifically from the OAGIS specification -->
+
+        <!-- these fields are from the message envelope, populated by receive or consume service (after initial parse) -->
+        <field name="senderId" type="text-short"><description>ID of the sender (for OAGIS may be broken down into
+            logicalId, component, task, referenceId; for EDI X12 this is ISA06)</description></field>
+        <field name="receiverId" type="text-short"><description>ID of the receiver (for OAGIS may also be broken down;
+            for EDI X12 this is ISA08)</description></field>
+        <field name="messageId" type="text-short"><description>ID of the message; this may be globally unique (like
+            the OAGIS BODID, a GUID) or only unique relative to the senderId and the receiverId (like EDI X12 ISA13 in
+            the context of ISA06, ISA08), and may only be unique within a certain time period (ID may be reused since in
+            EDI X12 limited to 9 digits)</description></field>
+        <field name="messageDate" type="date-time"><description>Date/time from message (for EDI X12 this is GS04 (date)
+            and GS05 (time))</description></field>
+        <field name="docType" type="text-short"><description>For OAGIS the BSR Noun; For X12 GS01 (functional ID code)</description></field>
+        <field name="docSubType" type="text-short"><description>For OAGIS the BSR Verb; For X12 ST01 (tx set ID code)</description></field>
+        <field name="docControl" type="text-short"><description>Control number of the message when applicable (such as
+            GS06 in EDI X12 messages)</description></field>
+        <field name="docSubControl" type="text-short"><description>Sub-Control number of the message when applicable (such as
+            ST02 in EDI X12 messages)</description></field>
+        <field name="docVersion" type="text-short"><description>The document version (for OAGIS BSR Revision, for X12 GS08 (version/revision))</description></field>
+
+        <!-- the follow may be useful for other types of messages, but come specifically from the OAGIS specification;
+            leave out for now, senderId and messageId with combined fields may be adequate and are more generic
         <field name="logicalId" type="text-medium"/>
         <field name="component" type="text-medium"/>
         <field name="task" type="text-medium"/>
         <field name="referenceId" type="text-medium"/>
         <field name="authId" type="text-medium"/>
-        <field name="bsrVerb" type="text-medium"/>
-        <field name="bsrNoun" type="text-medium"/>
-        <field name="bsrRevision" type="text-medium"/>
+        -->
+
         <relationship type="one" related-entity-name="moqui.service.message.SystemMessageType"/>
         <relationship type="one" title="SystemMessage" related-entity-name="moqui.basic.StatusItem"/>
+        <relationship type="one" title="Parent" related-entity-name="moqui.service.message.SystemMessage">
+            <key-map field-name="parentMessageId"/></relationship>
         <relationship type="one" related-entity-name="moqui.service.message.SystemMessageRemote"/>
         <seed-data>
             <moqui.basic.StatusType description="System Message" statusTypeId="SystemMessage"/>
@@ -227,8 +255,11 @@ along with this software (see the LICENSE.md file). If not, see
             <moqui.basic.StatusItem description="Consuming" sequenceNum="21" statusId="SmsgConsuming" statusTypeId="SystemMessage"/>
             <moqui.basic.StatusItem description="Consumed" sequenceNum="22" statusId="SmsgConsumed" statusTypeId="SystemMessage"/>
 
-            <!-- Confirmation sent -->
+            <!-- Confirmation sent/received -->
             <moqui.basic.StatusItem description="Confirmed" sequenceNum="90" statusId="SmsgConfirmed" statusTypeId="SystemMessage"/>
+            <!-- Rejected by receiver (functional reject, ie syntax/etc errors) -->
+            <moqui.basic.StatusItem description="Rejected" sequenceNum="97" statusId="SmsgRejected" statusTypeId="SystemMessage"/>
+            <!-- Cancelled by sender -->
             <moqui.basic.StatusItem description="Cancelled" sequenceNum="98" statusId="SmsgCancelled" statusTypeId="SystemMessage"/>
             <!-- Error, generally after retry limit -->
             <moqui.basic.StatusItem description="Error" sequenceNum="99" statusId="SmsgError" statusTypeId="SystemMessage"/>
@@ -238,13 +269,16 @@ along with this software (see the LICENSE.md file). If not, see
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgSending" toStatusId="SmsgProduced" transitionName="Back to Produced"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgProduced" toStatusId="SmsgSent" transitionName="Send"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgSent" toStatusId="SmsgConfirmed" transitionName="Confirm"/>
+            <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgSent" toStatusId="SmsgRejected" transitionName="Reject"/>
 
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgReceived" toStatusId="SmsgConsuming" transitionName="Consuming"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgConsuming" toStatusId="SmsgConsumed" transitionName="Consume"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgConsuming" toStatusId="SmsgReceived" transitionName="Back to Received"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgReceived" toStatusId="SmsgConsumed" transitionName="Consume"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgConsumed" toStatusId="SmsgConfirmed" transitionName="Confirm"/>
+            <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgConsumed" toStatusId="SmsgRejected" transitionName="Reject"/>
 
+            <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgConsuming" toStatusId="SmsgError" transitionName="Error"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgProduced" toStatusId="SmsgError" transitionName="Error"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgError" toStatusId="SmsgProduced" transitionName="Back to Produced"/>
             <moqui.basic.StatusFlowTransition statusFlowId="Default" statusId="SmsgError" toStatusId="SmsgSending" transitionName="Sending"/>
@@ -278,12 +312,18 @@ along with this software (see the LICENSE.md file). If not, see
         <field name="consumeServiceName" type="text-medium"><description>The service to call after a message is
             received to consume it. Should implement the org.moqui.impl.SystemMessageServices.consume#SystemMessage
             interface (just a systemMessageId in-parameter). Used by the consume#ReceivedSystemMessage service.</description></field>
+        <field name="produceAckServiceName" type="text-medium"><description>The service to call to produce an async
+            acknowledgement of a message. Should implement the org.moqui.impl.SystemMessageServices.produce#AckSystemMessage.
+            Once the message is produced should call the org.moqui.impl.SystemMessageServices.queue#SystemMessage service.</description></field>
+        <field name="produceAckOnConsumed" type="text-indicator"/>
         <field name="sendServiceName" type="text-medium"><description>The service to call to send queued messages.
             Should implement the org.moqui.impl.SystemMessageServices.send#SystemMessage interface (just a
             systemMessageId in-parameter and remoteMessageId out-parameter). Used by the send#ProducedSystemMessage service,
             and for that service must be specified or will result in an error.</description></field>
-        <field name="receiveServiceName" type="text-medium"><description>When applicable, used by the send service as
-            the service on the remote server to call to receive the message.</description></field>
+        <field name="receiveServiceName" type="text-medium"><description>The service to call to save a received message.
+            Should implement the org.moqui.impl.SystemMessageServices.receive#SystemMessage interface.
+            If not specified receive#IncomingSystemMessage just saves the message directly.
+            When applicable, used by the send service as the service on the remote server to call to receive the message.</description></field>
     </entity>
     <entity entity-name="SystemMessageRemote" package-name="moqui.service.message">
         <field name="systemMessageRemoteId" type="id" is-pk="true"/>
@@ -292,10 +332,28 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- potential future use, restrict receive message: <field name="authorizedIpAddresses" type="text-long"/> -->
         <field name="sendServiceName" type="text-medium"><description>Override for SystemMessageType.sendServiceName</description></field>
         <field name="username" type="text-medium"><description>This user needs permission to run the remote service or
-            whatever on the remote system receives the message. For the the Moqui receive#SystemMessage service the user
+            whatever on the remote system receives the message. For the the Moqui receive#IncomingSystemMessage service the user
             should be in a group that has authz for the SystemMessageServices ArtifactGroup (see SecurityTypeData.xml).</description></field>
         <field name="password" type="text-short" encrypt="true"/>
         <field name="tenantId" type="text-short"/>
+
+        <field name="systemMessageTypeId" type="id"><description>Optional. May be used when this remote is for one type of message.</description></field>
+        <!-- for incoming message internal is the receiver, remote the sender; for outgoing messages internal is the sender, remote the receiver -->
+        <field name="internalId" type="text-short"><description>Sender (outgoing) or receiver (incoming) ID (EDI: in ISA06/08; OAGIS in ApplicationArea.Sender/Receiver.ID)</description></field>
+        <field name="internalIdType" type="text-short"/>
+        <field name="internalAppCode" type="text-medium"><description>Application code (EDI: in GS02/03; OAGIS: in ApplicationArea.Sender/Receiver elements, split among sub-elements)</description></field>
+        <field name="remoteId" type="text-short"><description>Sender (outgoing) or receiver (incoming) ID (EDI: in ISA06/08; OAGIS in ApplicationArea.Sender/Receiver.ID)</description></field>
+        <field name="remoteIdType" type="text-short"/>
+        <field name="remoteAppCode" type="text-medium"><description>Application code (EDI: in GS02/03; OAGIS: in ApplicationArea.Sender/Receiver elements, split among sub-elements)</description></field>
+
+        <field name="ackRequested" type="text-short"><description>Request acknowledgement? Possible values dependent on message standard.</description></field>
+        <field name="usageCode" type="text-short"><description>Used for production versus test/etc. Possible values dependent on message standard.</description></field>
+
+        <!-- for formatting EDI and other character delimited files -->
+        <field name="segmentTerminator" type="text-indicator"/>
+        <field name="elementSeparator" type="text-indicator"/>
+        <field name="componentDelimiter" type="text-indicator"/>
+        <field name="escapeCharacter" type="text-indicator"/>
     </entity>
     <entity entity-name="SystemMessageError" package-name="moqui.service.message">
         <field name="systemMessageId" type="id" is-pk="true"/>

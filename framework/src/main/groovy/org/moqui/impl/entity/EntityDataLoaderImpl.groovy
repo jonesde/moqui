@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -114,6 +114,7 @@ class EntityDataLoaderImpl implements EntityDataLoader {
     @Override
     EntityDataLoader csvQuoteChar(char quoteChar) { this.csvQuoteChar = quoteChar; return this }
 
+    @Override
     List<String> check() {
         CheckValueHandler cvh = new CheckValueHandler(this)
         EntityXmlHandler exh = new EntityXmlHandler(this, cvh)
@@ -124,6 +125,19 @@ class EntityDataLoaderImpl implements EntityDataLoader {
         return cvh.getMessageList()
     }
 
+    @Override
+    long check(List<String> messageList) {
+        CheckValueHandler cvh = new CheckValueHandler(this)
+        EntityXmlHandler exh = new EntityXmlHandler(this, cvh)
+        EntityCsvHandler ech = new EntityCsvHandler(this, cvh)
+        EntityJsonHandler ejh = new EntityJsonHandler(this, cvh)
+
+        internalRun(exh, ech, ejh)
+        messageList.addAll(cvh.getMessageList())
+        return cvh.getFieldsChecked()
+    }
+
+    @Override
     long load() {
         LoadValueHandler lvh = new LoadValueHandler(this)
         EntityXmlHandler exh = new EntityXmlHandler(this, lvh)
@@ -134,6 +148,7 @@ class EntityDataLoaderImpl implements EntityDataLoader {
         return exh.getValuesRead() + ech.getValuesRead() + ejh.getValuesRead()
     }
 
+    @Override
     EntityList list() {
         ListValueHandler lvh = new ListValueHandler(this)
         EntityXmlHandler exh = new EntityXmlHandler(this, lvh)
@@ -166,21 +181,25 @@ class EntityDataLoaderImpl implements EntityDataLoader {
                 }
             }
 
-            // if we're loading seed type data, add COMPONENT entity def files to the list of locations to load
-            if (!dataTypes || dataTypes.contains("seed")) {
-                for (ResourceReference entityRr in efi.getComponentEntityFileLocations(componentNameList))
-                    if (!entityRr.location.endsWith(".eecas.xml")) locationList.add(entityRr.location)
+            LinkedHashMap<String, String> loadCompLocations
+            if (componentNameList) {
+                LinkedHashMap<String, String> allLocations = efi.ecfi.getComponentBaseLocations()
+                loadCompLocations = new LinkedHashMap<String, String>()
+                for (String cn in componentNameList) loadCompLocations.put(cn, allLocations.get(cn))
+            } else {
+                loadCompLocations = efi.ecfi.getComponentBaseLocations()
             }
 
-            List<String> componentBaseLocations
-            if (componentNameList) {
-                componentBaseLocations = []
-                for (String cn in componentNameList)
-                    componentBaseLocations.add(efi.ecfi.getComponentBaseLocations().get(cn))
-            } else {
-                componentBaseLocations = new ArrayList(efi.ecfi.getComponentBaseLocations().values())
-            }
-            for (String location in componentBaseLocations) {
+            for (Map.Entry<String, String> compLocEntry in loadCompLocations) {
+
+                // if we're loading seed type data, add COMPONENT entity def files to the list of locations to load
+                if (!dataTypes || dataTypes.contains("seed")) {
+                    for (ResourceReference entityRr in efi.getComponentEntityFileLocations([compLocEntry.key]))
+                        if (!entityRr.location.endsWith(".eecas.xml")) locationList.add(entityRr.location)
+                }
+
+                // load files in component data directory
+                String location = compLocEntry.value
                 ResourceReference dataDirRr = efi.ecfi.resourceFacade.getLocationReference(location + "/data")
                 if (dataDirRr.supportsAll()) {
                     // if directory doesn't exist skip it, component doesn't have a data directory
@@ -335,13 +354,15 @@ class EntityDataLoaderImpl implements EntityDataLoader {
     }
     static class CheckValueHandler extends ValueHandler {
         protected List<String> messageList = new LinkedList()
+        protected long fieldsChecked = 0
         CheckValueHandler(EntityDataLoaderImpl edli) { super(edli) }
         List<String> getMessageList() { return messageList }
+        long getFieldsChecked() { return fieldsChecked }
         void handleValue(EntityValue value) { value.checkAgainstDatabase(messageList) }
         void handlePlainMap(String entityName, Map value) {
             EntityList el = edli.getEfi().getValueListFromPlainMap(value, entityName)
             // logger.warn("=========== Check value: ${value}\nel: ${el}")
-            for (EntityValue ev in el) ev.checkAgainstDatabase(messageList)
+            for (EntityValue ev in el) fieldsChecked += ev.checkAgainstDatabase(messageList)
         }
         void handleService(ServiceCallSync scs) { messageList.add("Doing check only so not calling service [${scs.getServiceName()}] with parameters ${scs.getCurrentParameters()}") }
     }

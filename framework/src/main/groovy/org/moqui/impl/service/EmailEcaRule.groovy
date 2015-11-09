@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -12,16 +12,19 @@
  */
 package org.moqui.impl.service
 
-import org.moqui.impl.actions.XmlAction
-import org.moqui.impl.context.ExecutionContextFactoryImpl
-import org.moqui.context.ExecutionContext
-
+import java.sql.Timestamp
+import javax.mail.Flags
 import javax.mail.internet.MimeMessage
 import javax.mail.Address
 import javax.mail.Multipart
 import javax.mail.BodyPart
 import javax.mail.Part
 import javax.mail.Header
+
+import org.apache.commons.io.IOUtils
+import org.moqui.impl.actions.XmlAction
+import org.moqui.impl.context.ExecutionContextFactoryImpl
+import org.moqui.context.ExecutionContext
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -52,12 +55,15 @@ class EmailEcaRule {
 
     // Node getEmecaNode() { return emecaNode }
 
-    void runIfMatches(MimeMessage message, ExecutionContext ec) {
+    void runIfMatches(MimeMessage message, String emailServerId, ExecutionContext ec) {
 
         try {
             ec.context.push()
 
-            Map<String, Object> fields = new HashMap()
+            ec.context.put("emailServerId", emailServerId)
+            ec.context.put("message", message)
+
+            Map<String, Object> fields = [:]
             ec.context.put("fields", fields)
 
             List<String> toList = []
@@ -74,25 +80,37 @@ class EmailEcaRule {
 
             fields.put("from", message.getFrom()?.getAt(0)?.toString())
             fields.put("subject", message.getSubject())
-            fields.put("sentDate", message.getSentDate())
-            fields.put("receivedDate", message.getReceivedDate())
-            fields.put("bodyPartList", makeBodyPartList(message))
+            fields.put("sentDate", message.getSentDate() ? new Timestamp(message.getSentDate().getTime()) : null)
+            fields.put("receivedDate", message.getReceivedDate() ? new Timestamp(message.getReceivedDate().getTime()) : null)
 
-            Map<String, Object> headers = new HashMap()
+            ec.context.put("bodyPartList", makeBodyPartList(message))
+
+            Map<String, Object> headers = [:]
             ec.context.put("headers", headers)
             for (Header header in message.allHeaders) {
-                if (headers.get(header.name)) {
-                    Object hi = headers.get(header.name)
+                String headerName = header.name.toLowerCase()
+                if (headers.get(headerName)) {
+                    Object hi = headers.get(headerName)
                     if (hi instanceof List) { hi.add(header.value) }
-                    else { headers.put(header.name, [hi, header.value]) }
+                    else { headers.put(headerName, [hi, header.value]) }
                 } else {
-                    headers.put(header.name, header.value)
+                    headers.put(headerName, header.value)
                 }
             }
+
+            Map<String, Boolean> flags = [:]
+            ec.context.put("flags", flags)
+            flags.answered = message.isSet(Flags.Flag.ANSWERED)
+            flags.deleted = message.isSet(Flags.Flag.DELETED)
+            flags.draft = message.isSet(Flags.Flag.DRAFT)
+            flags.flagged = message.isSet(Flags.Flag.FLAGGED)
+            flags.recent = message.isSet(Flags.Flag.RECENT)
+            flags.seen = message.isSet(Flags.Flag.SEEN)
 
             // run the condition and if passes run the actions
             boolean conditionPassed = true
             if (condition) conditionPassed = condition.checkCondition(ec)
+            // logger.info("======== EMECA ${emecaNode.attribute("rule-name")} conditionPassed? ${conditionPassed} fields:\n${fields}\nflags: ${flags}\nheaders: ${headers}")
             if (conditionPassed) {
                 if (actions) actions.run(ec)
             }
@@ -101,17 +119,24 @@ class EmailEcaRule {
         }
     }
 
-    protected List<String> makeBodyPartList(Part part) {
-        List<String> bodyPartList = []
+    protected List<Map> makeBodyPartList(Part part) {
+        List<Map> bodyPartList = []
         Object content = part.getContent()
+        Map bpMap = [contentType:part.getContentType(), filename:part.getFileName(), disposition:part.getDisposition()?.toLowerCase()]
         if (content instanceof CharSequence) {
-            bodyPartList.add(content.toString())
+            bpMap.contentText = content.toString()
+            bodyPartList.add(bpMap)
         } else if (content instanceof Multipart) {
-            int count = ((Multipart) content).getCount()
+            Multipart mpContent = (Multipart) content
+            int count = mpContent.getCount()
             for (int i = 0; i < count; i++) {
-                BodyPart bp = ((Multipart) content).getBodyPart(i)
+                BodyPart bp = mpContent.getBodyPart(i)
                 bodyPartList.addAll(makeBodyPartList(bp))
             }
+        } else if (content instanceof InputStream) {
+            InputStream is = (InputStream) content
+            bpMap.contentBytes = IOUtils.toByteArray(is)
+            bodyPartList.add(bpMap)
         }
         return bodyPartList
     }

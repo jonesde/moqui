@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -129,11 +129,11 @@ along with this software (see the LICENSE.md file). If not, see
     </service>
     
     <!-- ========== Example SystemMessage Services ========== -->
-    <service verb="send" noun="ExampleMessage">
+    <service verb="produce" noun="ExampleMessage">
         <in-parameters>
             <parameter name="exampleId" required="true"/>
             <parameter name="systemMessageRemoteId" default-value="Example1Local"/>
-            <parameter name="sendNow" type="Boolean" default-value="true"/>
+            <parameter name="sendNow" type="Boolean" default="true"/>
         </in-parameters>
         <out-parameters><parameter name="systemMessageId"/></out-parameters>
         <actions>

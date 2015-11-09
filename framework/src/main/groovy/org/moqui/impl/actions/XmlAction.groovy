@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -19,7 +19,7 @@ import org.codehaus.groovy.runtime.InvokerHelper
 import org.moqui.BaseException
 import org.moqui.context.ExecutionContext
 import org.moqui.impl.context.ExecutionContextFactoryImpl
-import org.moqui.impl.FtlNodeWrapper
+import org.moqui.impl.util.FtlNodeWrapper
 import org.moqui.impl.StupidUtilities
 import org.moqui.impl.context.ContextBinding
 

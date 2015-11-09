@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal.
+This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
@@ -78,7 +78,7 @@ along with this software (see the LICENSE.md file). If not, see
             </xs:attribute>
             <xs:attribute name="authenticate" default="true">
                 <xs:annotation><xs:documentation>
-                    If not set to false (is true by default) a user much be logged in to run this service. If the
+                    If not set to false (true by default) a user must be logged in to run this service. If the
                     service is running in an ExecutionContext with a user logged in that will qualify. If not then
                     either a "authUserAccount" parameter or the "authUsername" AND "authPassword" parameters must be
                     specified and must contain valid values for a user of the system.
@@ -90,7 +90,7 @@ along with this software (see the LICENSE.md file). If not, see
                     An "authTenantId" parameter may also be specified to authenticate the user in a specific tenant
                     instance. If specified will be used to run the service with that as the context tenant.
 
-                    If set to anonymous-all or anonymous-view and not only will authentication not be required, but this
+                    If set to anonymous-all or anonymous-view then not only will authentication not be required, but this
                     service will run as if authorized (using the _NA_ UserAccount) for all actions or for view-only.
                 </xs:documentation></xs:annotation>
                 <xs:simpleType>

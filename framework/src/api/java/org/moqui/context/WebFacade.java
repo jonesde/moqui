@@ -1,5 +1,5 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal.
+ * This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License.
  * 
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
@@ -33,6 +33,8 @@ public interface WebFacade {
 
     HttpSession getSession();
     Map<String, Object> getSessionAttributes();
+    /** Get the token to include in all POST requests with the name moquiSessionToken (in the session as 'moqui.session.token') */
+    String getSessionToken();
 
     ServletContext getServletContext();
     Map<String, Object> getApplicationAttributes();
@@ -47,8 +49,12 @@ public interface WebFacade {
 
     void sendJsonResponse(Object responseObj);
     void sendTextResponse(String text);
+    void sendTextResponse(String text, String contentType);
     void sendResourceResponse(String location);
+
     void handleXmlRpcServiceCall();
     void handleJsonRpcServiceCall();
     void handleEntityRestCall(List<String> extraPathNameList);
+    void handleEntityRestSchema(List<String> extraPathNameList, String schemaUri, String linkPrefix, String schemaLinkPrefix);
+    void handleEntityRestRaml(List<String> extraPathNameList, String linkPrefix, String schemaLinkPrefix);
 }
