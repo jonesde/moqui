@@ -187,7 +187,7 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
             } else {
                 condValue = fromObj
             }
-            if (ignoreIfEmpty && !condValue) return null
+            if (ignoreIfEmpty && StupidUtilities.isEmpty(condValue)) return null
 
             EntityCondition mainEc = makeCondition(fieldName, getComparisonOperator(operator), condValue)
             if (ignoreCase) mainEc.ignoreCase()

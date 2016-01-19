@@ -13,6 +13,8 @@ New Features
 
 Bug Fixes
 
+- Fixed MySQL date-time type for milliseconds; improved example conf for XA
+
 ===========================================================================
 Release 1.6.0 - 17 Jan 2016
 ===========================================================================

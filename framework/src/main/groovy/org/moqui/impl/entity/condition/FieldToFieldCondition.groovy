@@ -13,15 +13,17 @@
  */
 package org.moqui.impl.entity.condition
 
+import groovy.transform.CompileStatic
 import org.moqui.entity.EntityCondition
 import org.moqui.impl.entity.EntityQueryBuilder
 import org.moqui.impl.entity.EntityConditionFactoryImpl
 
+@CompileStatic
 class FieldToFieldCondition extends EntityConditionImplBase {
     protected volatile Class localClass = null
-    protected ConditionField field
-    protected EntityCondition.ComparisonOperator operator
-    protected ConditionField toField
+    protected final ConditionField field
+    protected final EntityCondition.ComparisonOperator operator
+    protected final ConditionField toField
     protected boolean ignoreCase = false
 
     FieldToFieldCondition(EntityConditionFactoryImpl ecFactoryImpl,
@@ -37,22 +39,28 @@ class FieldToFieldCondition extends EntityConditionImplBase {
     @Override
     void makeSqlWhere(EntityQueryBuilder eqb) {
         StringBuilder sql = eqb.getSqlTopLevel()
-        int typeValue = field.getFieldInfo(eqb.getMainEd())?.typeValue ?: 1
-        if (this.ignoreCase && typeValue == 1) sql.append("UPPER(")
+        int typeValue = -1
+        if (ignoreCase) {
+            typeValue = field.getFieldInfo(eqb.getMainEd())?.typeValue ?: 1
+            if (typeValue == 1) sql.append("UPPER(")
+        }
         sql.append(field.getColumnName(eqb.getMainEd()))
-        if (this.ignoreCase && typeValue == 1) sql.append(")")
-        sql.append(' ')
-        sql.append(EntityConditionFactoryImpl.getComparisonOperatorString(this.operator))
-        sql.append(' ')
-        int toTypeValue = toField.getFieldInfo(eqb.getMainEd())?.typeValue ?: 1
-        if (this.ignoreCase && toTypeValue == 1) sql.append("UPPER(")
+        if (ignoreCase && typeValue == 1) sql.append(")")
+
+        sql.append(' ').append(EntityConditionFactoryImpl.getComparisonOperatorString(operator)).append(' ')
+
+        int toTypeValue = -1
+        if (ignoreCase) {
+            toTypeValue = toField.getFieldInfo(eqb.getMainEd())?.typeValue ?: 1
+            if (toTypeValue == 1) sql.append("UPPER(")
+        }
         sql.append(toField.getColumnName(eqb.getMainEd()))
-        if (this.ignoreCase && toTypeValue == 1) sql.append(")")
+        if (ignoreCase && toTypeValue == 1) sql.append(")")
     }
 
     @Override
     boolean mapMatches(Map<String, ?> map) {
-        return EntityConditionFactoryImpl.compareByOperator(map.get(field.getFieldName()), this.operator, map.get(toField.getFieldName()))
+        return EntityConditionFactoryImpl.compareByOperator(map.get(field.getFieldName()), operator, map.get(toField.getFieldName()))
     }
 
     @Override
@@ -73,16 +81,16 @@ class FieldToFieldCondition extends EntityConditionImplBase {
     }
 
     @Override
-    EntityCondition ignoreCase() { this.ignoreCase = true; return this }
+    EntityCondition ignoreCase() { ignoreCase = true; return this }
 
     @Override
     String toString() {
-        return field + " " + EntityConditionFactoryImpl.getComparisonOperatorString(this.operator) + " " + toField
+        return field.toString() + " " + EntityConditionFactoryImpl.getComparisonOperatorString(operator) + " " + toField.toString()
     }
 
     @Override
     int hashCode() {
-        return (field ? field.hashCode() : 0) + operator.hashCode() + (toField ? toField.hashCode() : 0) + ignoreCase.hashCode()
+        return (field ? field.hashCode() : 0) + operator.hashCode() + (toField ? toField.hashCode() : 0) + (ignoreCase ? 1 : 0)
     }
 
     @Override

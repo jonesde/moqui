@@ -236,8 +236,7 @@
                 <xa-properties url="jdbc:h2:${moqui.runtime}/db/h2/MoquiDEFAULT" user="sa" password="sa"/>
             </inline-jdbc>
             <!-- <inline-jdbc jdbc-uri="jdbc:h2:${moqui.runtime}/db/h2/MoquiDEFAULT"
-                         jdbc-username="sa" jdbc-password=""
-                         pool-minsize="5" pool-maxsize="50"/> -->
+                         jdbc-username="sa" jdbc-password="sa" pool-minsize="5" pool-maxsize="50"/> -->
             <!-- <jndi-jdbc jndi-name="java:/MoquiDEFAULTDataSource"/> -->
         </datasource>
         <!-- The entity-facade.default-group-name=transactional, so if other entity groups do not have a data source
@@ -280,8 +279,7 @@
                 <xa-properties databaseName="${moqui.runtime}/db/derby/MoquiDEFAULT" createDatabase="create"/>
             </inline-jdbc>
             <!- - <inline-jdbc jdbc-uri="jdbc:derby:MoquiDEFAULT;create=true"
-                         jdbc-username="moqui" jdbc-password="moqui"
-                         pool-minsize="5" pool-maxsize="50"/> - ->
+                         jdbc-username="moqui" jdbc-password="moqui" pool-minsize="5" pool-maxsize="50"/> - ->
         </datasource>
         -->
         <!-- DB2
@@ -300,15 +298,13 @@
                 <xa-properties url="jdbc:h2:${moqui.runtime}/db/h2/MoquiDEFAULT" user="sa" password=""/>
             </inline-jdbc>
             <!- - <inline-jdbc jdbc-uri="jdbc:h2:${moqui.runtime}/db/h2/MoquiDEFAULT"
-                         jdbc-username="sa" jdbc-password=""
-                         pool-minsize="5" pool-maxsize="50"/> - ->
+                         jdbc-username="sa" jdbc-password="" pool-minsize="5" pool-maxsize="50"/> - ->
         </datasource>
         -->
         <!-- MS SQL Server
         <datasource group-name="transactional" database-conf-name="mssql" schema-name="">
             <inline-jdbc pool-minsize="5" pool-maxsize="50">
-                <xa-properties user="moqui" password="moqui" serverName="localhost" portNumber="1433"
-                               databaseName="MoquiDEFAULT"/>
+                <xa-properties user="moqui" password="moqui" serverName="localhost" portNumber="1433" databaseName="MoquiDEFAULT"/>
             </inline-jdbc>
             <!- - <inline-jdbc jdbc-uri="jdbc:sqlserver://localhost:1433;databaseName=MoquiDEFAULT"
                     jdbc-username="moqui" jdbc-password="moqui" pool-minsize="2" pool-maxsize="50"/> - ->
@@ -316,17 +312,13 @@
         -->
         <!-- MySQL
         <datasource group-name="transactional" database-conf-name="mysql" schema-name="">
-            <inline-jdbc jdbc-uri="jdbc:mysql://127.0.0.1:3306/MoquiDEFAULT?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8"
-                    jdbc-username="moqui" jdbc-password="moqui" pool-minsize="2" pool-maxsize="50"/>
-            <!- - these two XA examples are untested, but show the general idea; the MysqlDataSource class has a LOT of configuration options
             <inline-jdbc pool-minsize="5" pool-maxsize="50">
-                <xa-properties user="moqui" password="moqui" pinGlobalTxToPhysicalConnection="true" explicitUrl="true"
-                        url="jdbc:mysql://127.0.0.1:3306/MoquiDEFAULT?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8"/>
-                <xa-properties user="moqui" password="moqui" pinGlobalTxToPhysicalConnection="true" explicitUrl="false"
-                        hostName="127.0.0.1" port="3306" databaseName="MoquiDEFAULT" autoReconnectForPools="true"
+                <xa-properties user="moqui" password="moqui" pinGlobalTxToPhysicalConnection="true"
+                        serverName="127.0.0.1" port="3306" databaseName="MoquiDEFAULT" autoReconnectForPools="true"
                         useUnicode="true" encoding="UTF-8"/>
             </inline-jdbc>
-            - ->
+            <!- - <inline-jdbc jdbc-uri="jdbc:mysql://127.0.0.1:3306/MoquiDEFAULT?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8"
+                    jdbc-username="moqui" jdbc-password="moqui" pool-minsize="2" pool-maxsize="50"/> - ->
         </datasource>
         -->
         <!-- Oracle
@@ -487,7 +479,7 @@
                 default-xa-ds-class="com.mysql.jdbc.jdbc2.optional.MysqlXADataSource"
                 default-test-query="SELECT 1">
             <!-- use DATETIME instead of TIMESTAMP so can be null and gets no default value; issue with newer MySQL versions -->
-            <database-type type="date-time" sql-type="DATETIME"/>
+            <database-type type="date-time" sql-type="DATETIME(3)"/>
 
             <database-type type="number-integer" sql-type="DECIMAL(20,0)"/>
             <database-type type="number-decimal" sql-type="DECIMAL(26,6)"/>
