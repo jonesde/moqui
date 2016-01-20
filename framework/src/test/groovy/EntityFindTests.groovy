@@ -12,6 +12,9 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import spock.lang.*
 
 import org.moqui.context.ExecutionContext
@@ -22,6 +25,8 @@ import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityList
 
 class EntityFindTests extends Specification {
+    protected final static Logger logger = LoggerFactory.getLogger(EntityFindTests.class)
+
     @Shared
     ExecutionContext ec
     @Shared
@@ -40,9 +45,9 @@ class EntityFindTests extends Specification {
     def setup() {
         ec.artifactExecution.disableAuthz()
         ec.transaction.begin(null)
-        ec.entity.makeValue("Example").setAll([exampleId:"EXTST1", exampleTypeEnumId: null,
-                description: "", exampleName:"Test Name",
-                exampleSize: 100, exampleDate: timestamp]).createOrUpdate()
+        ec.entity.makeValue("Example").setAll([exampleId:"EXTST1", exampleTypeEnumId:null,
+                description:"", exampleName:"Test Name",
+                exampleSize:4321, exampleDate:timestamp]).createOrUpdate()
     }
 
     def cleanup() {
@@ -61,8 +66,8 @@ class EntityFindTests extends Specification {
         where:
         fieldName | value
         "exampleId" | "EXTST1"
-        // fails on some DBs without pre-JDBC type conversion: "exampleSize" | "100"
-        "exampleSize" | 100
+        // fails on some DBs without pre-JDBC type conversion: "exampleSize" | "4321"
+        "exampleSize" | 4321
         // fails on some DBs without pre-JDBC type conversion: "exampleDate" | ec.l10n.format(timestamp, "yyyy-MM-dd HH:mm:ss.SSS")
         "exampleDate" | timestamp
     }
@@ -83,10 +88,9 @@ class EntityFindTests extends Specification {
     }
 
     @Unroll
-    def "find Example by searchFormInputs (#inputsMap #resultId)"() {
+    def "find Example by searchFormMap (#inputsMap #resultId)"() {
         expect:
-        ec.context.putAll(inputsMap)
-        EntityValue example = ec.entity.find("Example").searchFormInputs("", "", false).one()
+        EntityValue example = ec.entity.find("moqui.example.Example").searchFormMap(inputsMap, "", false).one()
         resultId ? example != null && example.exampleId == resultId : example == null
 
         where:
@@ -94,21 +98,21 @@ class EntityFindTests extends Specification {
         [exampleId: "EXTST1", exampleId_op: "equals"] | "EXTST1"
         [exampleId: "%XTST%", exampleId_op: "like"] | "EXTST1"
         [exampleId: "XTST", exampleId_op: "contains"] | "EXTST1"
-        [exampleId: "EXTST1", exampleId_op: "equals", exampleTypeEnumId_op: "empty"] | "EXTST1"
-        [exampleId: "EXTST1", exampleId_op: "equals", description_op: "empty"] | "EXTST1"
-        [exampleId: "EXTST1", exampleId_op: "equals", exampleDate_from: "", exampleDate_thru: ""] | "EXTST1"
-        [exampleId: "EXTST1", exampleId_op: "equals", exampleDate_from: timestamp, exampleDate_thru: timestamp] | null
-        [exampleId: "EXTST1", exampleId_op: "equals", exampleDate_from: timestamp, exampleDate_thru: timestamp + 1] | "EXTST1"
-        [exampleId: "EXTST1", exampleId_op: "equals", exampleName_not: "Y", exampleName_op: "equals", exampleName: ""] | "EXTST1"
-        [exampleId: "EXTST1", exampleId_op: "equals", exampleName_not: "Y", exampleName_op: "empty"] | "EXTST1"
+        [exampleName:"Test Name", exampleTypeEnumId_op: "empty"] | "EXTST1"
+        [exampleName:"Test Name", description_op: "empty"] | "EXTST1"
+        [exampleName:"Test Name", exampleDate_from: "", exampleDate_thru: ""] | "EXTST1"
+        [exampleName:"Test Name", exampleDate_from: timestamp, exampleDate_thru: timestamp] | null
+        [exampleName:"Test Name", exampleDate_from: timestamp, exampleDate_thru: timestamp + 1] | "EXTST1"
+        [exampleSize:4321, exampleName_not: "Y", exampleName_op: "equals", exampleName: ""] | "EXTST1"
+        [exampleSize:4321, exampleName_not: "Y", exampleName_op: "empty"] | "EXTST1"
     }
 
     def "auto cache clear for list"() {
         // update the exampleName and make sure we get the new value
         when:
-        EntityList exampleList = ec.entity.find("Example").condition("exampleSize", 100).useCache(true).list()
+        EntityList exampleList = ec.entity.find("Example").condition("exampleSize", 4321).useCache(true).list()
         ec.entity.makeValue("Example").setAll([exampleId:"EXTST1", exampleName:"Test Name 2"]).update()
-        exampleList = ec.entity.find("Example").condition("exampleSize", 100).useCache(true).list()
+        exampleList = ec.entity.find("Example").condition("exampleSize", 4321).useCache(true).list()
 
         then:
         exampleList.size() == 1
@@ -127,9 +131,9 @@ class EntityFindTests extends Specification {
 
     def "auto cache clear for one by non-primary key"() {
         when:
-        EntityValue example = ec.entity.find("Example").condition([exampleSize:100, exampleDate:timestamp]).useCache(true).one()
+        EntityValue example = ec.entity.find("Example").condition([exampleSize:4321, exampleDate:timestamp]).useCache(true).one()
         ec.entity.makeValue("Example").setAll([exampleId:"EXTST1", exampleName:"Test Name 4"]).update()
-        example = ec.entity.find("Example").condition([exampleSize:100, exampleDate:timestamp]).useCache(true).one()
+        example = ec.entity.find("Example").condition([exampleSize:4321, exampleDate:timestamp]).useCache(true).one()
 
         then:
         example.exampleName == "Test Name 4"

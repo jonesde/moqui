@@ -44,6 +44,7 @@ class FieldValueCondition extends EntityConditionImplBase {
     EntityCondition.ComparisonOperator getOperator() { return operator }
     String getFieldName() { return field.fieldName }
     Object getValue() { return value }
+    boolean getIgnoreCase() { return ignoreCase }
 
     @Override
     void makeSqlWhere(EntityQueryBuilder eqb) {

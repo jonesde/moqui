@@ -13,6 +13,9 @@ New Features
 
 Bug Fixes
 
+- Fixed issue with EntityFindBase.condition() where condition break down
+  set ignore case to true
+- Fixed issue with from/thru date where conversion from String was ignored
 - Fixed MySQL date-time type for milliseconds; improved example conf for XA
 
 ===========================================================================

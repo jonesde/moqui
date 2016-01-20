@@ -97,8 +97,9 @@ class EntityListImpl implements EntityList {
 
         return this
     }
+    @Override
     EntityList filterByDate(String fromDateName, String thruDateName, Timestamp moment, boolean ignoreIfEmpty) {
-        if (ignoreIfEmpty && (Object) moment == null) return this
+        if (ignoreIfEmpty && moment == (Timestamp) null) return this
         return filterByDate(fromDateName, thruDateName, moment)
     }
 
@@ -396,6 +397,7 @@ class EntityListImpl implements EntityList {
 
         EntityValue getFirst() { return null }
         EntityList filterByDate(String fromDateName, String thruDateName, Timestamp moment) { return this }
+        EntityList filterByDate(String fromDateName, String thruDateName, Timestamp moment, boolean ignoreIfEmpty) { return this }
         EntityList filterByAnd(Map<String, Object> fields) { return this }
         EntityList filterByAnd(Map<String, Object> fields, Boolean include) { return this }
         EntityList removeByAnd(Map<String, Object> fields) { return this }

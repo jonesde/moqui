@@ -151,7 +151,7 @@ return;
         ${.node["@list"]} = ${.node["@list"]}_xafind.list()
         <#if useCache>
             <#list .node["date-filter"] as df>
-                ${.node["@list"]} = ${.node["@list"]}.filterByDate("${df["@from-field-name"]?default("fromDate")}", "${df["@thru-field-name"]?default("thruDate")}", <#if df["@valid-date"]?has_content>${df["@valid-date"]} as java.sql.Timestamp<#else>null</#if>, ${df["@ignore-if-empty"]?default("false")})
+                ${.node["@list"]} = ${.node["@list"]}.filterByDate("${df["@from-field-name"]?default("fromDate")}", "${df["@thru-field-name"]?default("thruDate")}", <#if df["@valid-date"]?has_content>${df["@valid-date"]} as java.sql.Timestamp<#else>null</#if>, ${df["@ignore-if-empty"]!"false"})
             </#list>
             <#if doPaginate>
                 <#-- get the Count after the date-filter, but before the limit/pagination filter -->
@@ -181,7 +181,7 @@ return;
 </#macro>
 <#-- =================== entity-find sub-elements =================== -->
 <#macro "date-filter">(org.moqui.entity.EntityCondition) ec.entity.conditionFactory.makeConditionDate("${.node["@from-field-name"]!("fromDate")}", "${.node["@thru-field-name"]!("thruDate")}", <#if .node["@valid-date"]?has_content>${.node["@valid-date"]} as java.sql.Timestamp<#else>null</#if>, ${.node["@ignore-if-empty"]!("false")})</#macro>
-<#macro "econdition">(org.moqui.entity.EntityCondition) ec.entity.conditionFactory.makeActionConditionDirect("${.node["@field-name"]}", "${.node["@operator"]?default("equals")}", ${.node["@from"]?default(.node["@field-name"])}, <#if .node["@value"]?has_content>"${.node["@value"]}"<#else>null</#if>, <#if .node["@to-field-name"]?has_content>"${.node["@to-field-name"]}"<#else>null</#if>, ${.node["@ignore-case"]?default("false")}, ${.node["@ignore-if-empty"]?default("false")}, ${.node["@or-null"]?default("false")}, "${.node["@ignore"]?default("false")}")</#macro>
+<#macro "econdition">(org.moqui.entity.EntityCondition) ec.entity.conditionFactory.makeActionConditionDirect("${.node["@field-name"]}", "${.node["@operator"]?default("equals")}", ${.node["@from"]?default(.node["@field-name"])}, <#if .node["@value"]?has_content>"${.node["@value"]}"<#else>null</#if>, <#if .node["@to-field-name"]?has_content>"${.node["@to-field-name"]}"<#else>null</#if>, ${.node["@ignore-case"]!"false"}, ${.node["@ignore-if-empty"]!"false"}, ${.node["@or-null"]!"false"}, "${.node["@ignore"]!"false"}")</#macro>
 <#macro "econditions">(org.moqui.entity.EntityCondition) ec.entity.conditionFactory.makeCondition([<#list .node?children as subCond><#visit subCond/><#if subCond_has_next>, </#if></#list>], org.moqui.impl.entity.EntityConditionFactoryImpl.getJoinOperator("${.node["@combine"]!"and"}"))</#macro>
 <#macro "econdition-object">${.node["@field"]}</#macro>
 

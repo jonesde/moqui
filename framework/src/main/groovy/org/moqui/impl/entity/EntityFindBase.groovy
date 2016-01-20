@@ -130,22 +130,22 @@ abstract class EntityFindBase implements EntityFind {
         if (condition instanceof FieldValueCondition) {
             // if this is a basic field/value EQUALS condition, just add to simpleAndMap
             FieldValueCondition fvc = (FieldValueCondition) condition
-            if (fvc.operator == EntityCondition.EQUALS && !fvc.ignoreCase()) {
+            if (fvc.getOperator() == EntityCondition.EQUALS && !fvc.getIgnoreCase()) {
                 this.condition(fvc.getFieldName(), fvc.getValue())
                 return this
             }
         } else if (condition instanceof ListCondition) {
             // if this is an AND list condition, just unroll it and add each one; could end up as another list, but may add to simpleAndMap
             ListCondition lc = (ListCondition) condition
-            if (lc.operator == EntityCondition.AND) {
+            if (lc.getOperator() == EntityCondition.AND) {
                 ArrayList<EntityConditionImplBase> condList = lc.getConditionList()
                 for (int i = 0; i < condList.size(); i++) this.condition(condList.get(i))
                 return this
             }
         } else if (condition instanceof MapCondition) {
             MapCondition mc = (MapCondition) condition
-            if (mc.joinOperator == EntityCondition.AND) {
-                if (mc.comparisonOperator == EntityCondition.EQUALS && !mc.ignoreCase) {
+            if (mc.getJoinOperator() == EntityCondition.AND) {
+                if (mc.getComparisonOperator() == EntityCondition.EQUALS && !mc.getIgnoreCase()) {
                     // simple AND Map, just add it
                     return this.condition(mc.fieldMap)
                 } else {
@@ -215,7 +215,7 @@ abstract class EntityFindBase implements EntityFind {
     @Override
     EntityFind searchFormInputs(String inputFieldsMapName, String defaultOrderBy, boolean alwaysPaginate) {
         ExecutionContext ec = efi.getEcfi().getExecutionContext()
-        Map inf = inputFieldsMapName ? (Map) ec.resource.expression(inputFieldsMapName, "") : efi.ecfi.executionContext.context
+        Map inf = inputFieldsMapName ? (Map) ec.resource.expression(inputFieldsMapName, "") : ec.context
         return searchFormMap(inf, defaultOrderBy, alwaysPaginate)
     }
 
@@ -306,17 +306,17 @@ abstract class EntityFindBase implements EntityFind {
                 Object thruValue = inf.get(fn + "_thru")
                 if (thruValue && thruValue instanceof CharSequence) thruValue = ed.convertFieldString(fn, thruValue.toString())
 
-                if (inf.get(fn + "_from")) this.condition(efi.conditionFactory.makeCondition(fn,
-                        EntityCondition.GREATER_THAN_EQUAL_TO, fromValue))
-                if (inf.get(fn + "_thru")) this.condition(efi.conditionFactory.makeCondition(fn,
-                        EntityCondition.LESS_THAN, thruValue))
+                if (fromValue) this.condition(efi.conditionFactory.makeCondition(fn, EntityCondition.GREATER_THAN_EQUAL_TO, fromValue))
+                if (thruValue) this.condition(efi.conditionFactory.makeCondition(fn, EntityCondition.LESS_THAN, thruValue))
             }
         }
 
         // always look for an orderByField parameter too
         String orderByString = inf?.get("orderByField") ?: defaultOrderBy
-        ec.context.put("orderByField", orderByString)
-        this.orderBy(orderByString)
+        if (orderByString) {
+            ec.context.put("orderByField", orderByString)
+            this.orderBy(orderByString)
+        }
 
         // look for the pageIndex and optional pageSize parameters; don't set these if should cache as will disable the cached query
         if ((alwaysPaginate || inf?.get("pageIndex") || inf?.get("pageSize")) && !shouldCache()) {

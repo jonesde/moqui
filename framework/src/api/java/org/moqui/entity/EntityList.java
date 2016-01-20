@@ -44,6 +44,7 @@ public interface EntityList extends List<EntityValue>, Iterable<EntityValue>, Cl
      *@return A reference to this for convenience.
      */
     EntityList filterByDate(String fromDateName, String thruDateName, Timestamp moment);
+    EntityList filterByDate(String fromDateName, String thruDateName, Timestamp moment, boolean ignoreIfEmpty);
 
     /** Modify this EntityList so that it contains only the values that match the values in the fields parameter.
      *
