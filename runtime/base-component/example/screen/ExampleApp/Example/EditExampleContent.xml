@@ -30,6 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
             import org.moqui.context.ResourceReference
             org.moqui.context.ExecutionContext ec = context.ec
 
+            repositoryName = "main"
             org.apache.commons.fileupload.FileItem contentFile = context.contentFile
             String fileName = contentFile.getName()
             ec.logger.info("Uploading file [${fileName}] for Example [${exampleId}] in repository [${repositoryName}] with purpose [${purposeEnumId}] and locale [${locale}]")
