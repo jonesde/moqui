@@ -130,7 +130,7 @@ abstract class EntityFindBase implements EntityFind {
         if (condition instanceof FieldValueCondition) {
             // if this is a basic field/value EQUALS condition, just add to simpleAndMap
             FieldValueCondition fvc = (FieldValueCondition) condition
-            if (fvc.operator == EntityCondition.EQUALS && !fvc.ignoreCase) {
+            if (fvc.operator == EntityCondition.EQUALS && !fvc.ignoreCase()) {
                 this.condition(fvc.getFieldName(), fvc.getValue())
                 return this
             }

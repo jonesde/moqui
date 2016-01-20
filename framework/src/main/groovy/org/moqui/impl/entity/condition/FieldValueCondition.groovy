@@ -142,8 +142,6 @@ class FieldValueCondition extends EntityConditionImplBase {
     @Override
     EntityCondition ignoreCase() { this.ignoreCase = true; curHashCode = null; return this }
 
-    boolean getIgnoreCase() { return this.ignoreCase }
-
     @Override
     String toString() {
         return field.toString() + " " + EntityConditionFactoryImpl.getComparisonOperatorString(this.operator) + " " + (value as String)
