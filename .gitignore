@@ -25,6 +25,7 @@ build/
 /runtime/elasticsearch/data/
 /runtime/elasticsearch/log/
 /runtime/elasticsearch/work/
+/runtime/jackrabbit/jackrabbit/
 /runtime/log/
 /runtime/tmp/
 /runtime/txlog/
@@ -36,6 +37,9 @@ build/
 /runtime/component-lib/
 /runtime/mantle/
 /runtime/base-component/example/lib/example-*.jar
+
+# jackrabbit standalone jar file
+/runtime/jackrabbit/jackrabbit-standalone-*.jar
 
 # IntelliJ IDEA files
 .idea/

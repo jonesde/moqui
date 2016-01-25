@@ -3,7 +3,7 @@
 <moqui-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/moqui-conf-1.6.xsd">
 
-    <tools enable-elasticsearch="true" enable-camel="true"/>
+    <tools enable-elasticsearch="true" enable-camel="true" run-jackrabbit="false"/>
 
     <cache-list warm-on-start="false">
         <!-- Development Mode - expires artifact cache entries; don't use these for production, load testing, etc -->
