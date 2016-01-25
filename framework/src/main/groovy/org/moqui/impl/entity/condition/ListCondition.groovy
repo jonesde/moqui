@@ -20,28 +20,41 @@ import org.moqui.entity.EntityCondition
 
 @CompileStatic
 class ListCondition extends EntityConditionImplBase {
-    protected ArrayList<EntityConditionImplBase> conditionList
-    protected EntityCondition.JoinOperator operator
+    protected final ArrayList<EntityConditionImplBase> conditionList = new ArrayList<EntityConditionImplBase>()
+    protected final EntityCondition.JoinOperator operator
     protected Integer curHashCode = null
     protected static final Class thisClass = ListCondition.class
 
     ListCondition(EntityConditionFactoryImpl ecFactoryImpl,
             List<EntityConditionImplBase> conditionList, EntityCondition.JoinOperator operator) {
         super(ecFactoryImpl)
-        this.conditionList = new ArrayList<EntityConditionImplBase>()
+        this.operator = operator != null ? operator : AND
         if (conditionList) {
-            Iterator<EntityConditionImplBase> conditionIter = conditionList.iterator()
-            while (conditionIter.hasNext()) {
-                EntityConditionImplBase cond = conditionIter.next()
-                if (cond != null) this.conditionList.add(cond)
+            if (conditionList instanceof RandomAccess) {
+                // avoid creating an iterator if possible
+                int listSize = conditionList.size()
+                for (int i = 0; i < listSize; i++) {
+                    EntityConditionImplBase cond = conditionList.get(i)
+                    if (cond != null) this.conditionList.add(cond)
+                }
+            } else {
+                Iterator<EntityConditionImplBase> conditionIter = conditionList.iterator()
+                while (conditionIter.hasNext()) {
+                    EntityConditionImplBase cond = conditionIter.next()
+                    if (cond != null) this.conditionList.add(cond)
+                }
             }
         }
-        this.operator = operator ?: AND
     }
 
     void addCondition(EntityConditionImplBase condition) {
         if (condition != null) conditionList.add(condition)
         curHashCode = null
+    }
+    void addConditions(ListCondition listCond) {
+        ArrayList<EntityConditionImplBase> condList = listCond.getConditionList()
+        int condListSize = condList.size()
+        for (int i = 0; i < condListSize; i++) addCondition(condList.get(i))
     }
 
     EntityCondition.JoinOperator getOperator() { return operator }

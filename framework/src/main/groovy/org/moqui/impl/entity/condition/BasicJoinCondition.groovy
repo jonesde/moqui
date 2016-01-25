@@ -31,6 +31,10 @@ class BasicJoinCondition extends EntityConditionImplBase {
         this.rhs = rhs
     }
 
+    EntityCondition.JoinOperator getOperator() { return operator }
+    EntityConditionImplBase getLhs() { return lhs }
+    EntityConditionImplBase getRhs() { return rhs }
+
     @Override
     void makeSqlWhere(EntityQueryBuilder eqb) {
         StringBuilder sql = eqb.getSqlTopLevel()

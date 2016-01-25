@@ -35,8 +35,8 @@ class ScreenWidgets {
 
     void render(ScreenRenderImpl sri) {
         ContextStack cs = (ContextStack) sri.ec.context
+        cs.push()
         try {
-            cs.push()
             cs.sri = sri
             cs.widgetsNode = widgetsFtlNode
             sri.template.createProcessingEnvironment(cs, sri.writer).process()

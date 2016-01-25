@@ -9,7 +9,35 @@ Moqui Framework 1.6.1 is a minor new feature and bug fix release.
 
 TODO
 
+Build Changes
+
+- Gradle tasks to help handle runtime directory in a separate repository
+  from Moqui Framework
+- Added component management features as Gradle tasks
+  - Components available configured in addons.xml
+  - Repositories components come from configured in addons.xml
+  - Get component from current or release archive (getCurrent, getRelease)
+  - Get component from git repositories (getGit)
+  - When getting a component, automatically gets all components it depends
+    on (must be configured in addons.xml so it knows where to get them)
+  - Do a git pull for moqui, runtime, and all components
+- Most JAR files removed, framework build now uses Bintray JCenter
+- JAR files are downloaded as needed on build
+- For convenience in IDEs to copy JAR files to the framework/dependencies
+  directory use: gradle framework:copyDependencies; note that this is not
+  necessary in IntelliJ IDEA (will import dependencies when creating a new
+  project based on the gradle files, use the refresh button in the Gradle
+  tool window to update after updating moqui)
+- If your component builds source or runs Spock tests changes will be
+  needed, see the runtime/base-component/example/build.gradle file
+
 New Features
+
+- The makeCondition(Map) methods now support _comp entry for comparison
+  operator, _join entry for join operator, and _list entry for a list of
+  conditions that will be combined with other fields/values in the Map
+- In FieldValueCondition if the value is a collection and operator is
+  EQUALS set to IN, or if NOT_EQUAL then NOT_IN
 
 Bug Fixes
 
@@ -17,6 +45,8 @@ Bug Fixes
   set ignore case to true
 - Fixed issue with from/thru date where conversion from String was ignored
 - Fixed MySQL date-time type for milliseconds; improved example conf for XA
+- If there are errors in screen actions the error message is displayed
+  instead of rendering the widgets (usually just resulting in more errors)
 
 ===========================================================================
 Release 1.6.0 - 17 Jan 2016

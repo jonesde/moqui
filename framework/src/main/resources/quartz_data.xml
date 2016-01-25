@@ -65,7 +65,8 @@
         </trigger>
     </schedule>
     -->
-    <!-- Uncomment these to run SystemMessage jobs:
+
+    <!-- Uncomment these to run SystemMessage send produced and consume received jobs:
     <schedule>
         <job>
             <name>send_AllProducedSystemMessages_single</name>
@@ -96,6 +97,27 @@
                 <group>SystemMessageServices</group>
                 <job-name>consume_AllReceivedSystemMessages_single</job-name>
                 <job-group>org.moqui.impl.SystemMessageServices.consume#AllReceivedSystemMessages</job-group>
+                <cron-expression>0 0/15 * * * ?</cron-expression>
+            </cron>
+        </trigger>
+    </schedule>
+    -->
+
+    <!-- Uncomment this to run the poll EmailServer job; note emailServerId=SYSTEM, change if needed
+    <schedule>
+        <job>
+            <name>poll_EmailServer_single</name>
+            <group>org.moqui.impl.EntitySyncServices.poll#EmailServer</group>
+            <description>Run All EntitySync</description>
+            <job-class>org.moqui.impl.service.ServiceQuartzJob</job-class>
+            <job-data-map><entry><key>emailServerId</key><value>SYSTEM</value></entry></job-data-map>
+        </job>
+        <trigger>
+            <cron>
+                <name>poll_EmailServer_frequent</name>
+                <group>EntitySyncServices</group>
+                <job-name>poll_EmailServer_single</job-name>
+                <job-group>org.moqui.impl.EntitySyncServices.poll#EmailServer</job-group>
                 <cron-expression>0 0/15 * * * ?</cron-expression>
             </cron>
         </trigger>

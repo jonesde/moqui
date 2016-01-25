@@ -25,7 +25,7 @@ along with this software (see the LICENSE.md file). If not, see
         <implements service="org.moqui.EmailServices.send#EmailTemplate"/>
     </service>
 
-    <service verb="poll" noun="EmailServer" authenticate="false" type="script" transaction-timeout="600"
+    <service verb="poll" noun="EmailServer" authenticate="anonymous-all" type="script" transaction-timeout="600"
              location="classpath://org/moqui/impl/pollEmailServer.groovy">
         <!-- org.moqui.impl.EmailServices.poll#EmailServer -->
         <description>

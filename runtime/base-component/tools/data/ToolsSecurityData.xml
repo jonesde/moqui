@@ -13,25 +13,24 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <entity-facade-xml type="seed">
-    <moqui.security.ArtifactGroup artifactGroupId="TOOLS_APP" description="Tools App (via root screen)"/>
-    <moqui.security.ArtifactGroupMember artifactGroupId="TOOLS_APP" artifactName="component://tools/screen/Tools.xml"
-            artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+    <!-- Tools App artifacts/authz -->
+    <artifactGroups artifactGroupId="TOOLS_APP" description="Tools App (via root screen)">
+        <artifacts artifactName="component://tools/screen/Tools.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <!-- Full permissions for the ADMIN user group -->
+        <authz userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
 
-    <moqui.security.ArtifactGroup artifactGroupId="SYSTEM_APP" description="System App (via root screen)"/>
-    <moqui.security.ArtifactGroupMember artifactGroupId="SYSTEM_APP" artifactName="component://tools/screen/System.xml"
-            artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-
-    <!-- Setup full permissions for the ADMIN user group -->
-    <moqui.security.ArtifactAuthz artifactAuthzId="TOOLS_AUTHZ_1" userGroupId="ADMIN" artifactGroupId="TOOLS_APP"
-            authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-    <moqui.security.ArtifactAuthz artifactAuthzId="SYSTEM_AUTHZ_1" userGroupId="ADMIN" artifactGroupId="SYSTEM_APP"
-            authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    <!-- System App artifacts/authz -->
+    <artifactGroups artifactGroupId="SYSTEM_APP" description="System App (via root screen)">
+        <artifacts artifactName="component://tools/screen/System.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <!-- Full permissions for the ADMIN user group -->
+        <authz userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
 
     <!-- Artifact group for all of the Moqui Tools REST API via the moqui resource (the root resource) -->
-    <moqui.security.ArtifactGroup artifactGroupId="MOQUI_API" description="Moqui Tools REST API (via root resource)"/>
-    <moqui.security.ArtifactGroupMember artifactGroupId="MOQUI_API" artifactTypeEnumId="AT_REST_PATH"
-            inheritAuthz="Y" artifactName="/moqui"/>
-    <!-- Full permissions for the ADMIN user group -->
-    <moqui.security.ArtifactAuthz artifactAuthzId="MOQUIAPI_AUTHZ_1" userGroupId="ADMIN" artifactGroupId="MOQUI_API"
-            authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    <artifactGroups artifactGroupId="MOQUI_API" description="Moqui Tools REST API (via root resource)">
+        <artifacts artifactTypeEnumId="AT_REST_PATH" inheritAuthz="Y" artifactName="/moqui"/>
+        <!-- Full permissions for the ADMIN user group -->
+        <authz userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
 </entity-facade-xml>

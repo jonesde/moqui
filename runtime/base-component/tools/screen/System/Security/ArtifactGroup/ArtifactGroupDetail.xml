@@ -151,7 +151,11 @@ along with this software (see the LICENSE.md file). If not, see
             </box-toolbar>
             <box-body>
                 <form-list name="ArtifactAuthzList" list="authzList" transition="updateArtifactAuthz">
-                    <field name="artifactAuthzId"><default-field><display/></default-field></field>
+                    <row-actions>
+                        <entity-find entity-name="moqui.security.ArtifactAuthzFilterAndSet" list="entityFilterSetList">
+                            <econdition field-name="artifactAuthzId"/></entity-find>
+                    </row-actions>
+                    <field name="artifactAuthzId"><default-field title="ID"><display/></default-field></field>
                     <field name="artifactGroupId"><default-field><hidden/></default-field></field>
                     <field name="userGroupId"><default-field title="User Group">
                         <display-entity entity-name="moqui.security.UserGroup" text="${description ?: ''} - "/>
@@ -176,6 +180,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </drop-down>
                     </default-field></field>
                     <field name="authzServiceName"><default-field><text-line size="30"/></default-field></field>
+                    <field name="entityFilterSets"><default-field>
+                        <section-iterate name="EntityFilterSetSection" list="entityFilterSetList" entry="entityFilterSet">
+                            <widgets><label text="${entityFilterSet.description}"/></widgets></section-iterate>
+                    </default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field name="deleteLink"><default-field title="">
                         <link url="deleteArtifactAuthz" text="X" confirmation="Really Delete?"

@@ -1,6 +1,7 @@
 # gradle/build files
 build/
 .gradle
+/framework/dependencies
 
 # build generated files
 /moqui-*.war

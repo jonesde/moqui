@@ -77,20 +77,22 @@ class ScreenSection {
             else if (list instanceof Map) listIterator = ((Map) list).entrySet().iterator()
             else if (list instanceof Iterable) listIterator = ((Iterable) list).iterator()
 
+            String sectionEntry = (String) sectionNode.attribute("entry")
+            String sectionKey = (String) sectionNode.attribute("key")
+
             // TODO: handle paginate, paginate-size (lower priority...)
             int index = 0
             while (listIterator != null && listIterator.hasNext()) {
                 Object entry = listIterator.next()
+                cs.push()
                 try {
-                    cs.push()
-
-                    cs.put((String) sectionNode["@entry"], (entry instanceof Map.Entry ? entry.getValue() : entry))
-                    if (sectionNode["@key"] && entry instanceof Map.Entry)
-                        cs.put((String) sectionNode["@key"], entry.getKey())
+                    cs.put(sectionEntry, (entry instanceof Map.Entry ? entry.getValue() : entry))
+                    if (sectionKey && entry instanceof Map.Entry)
+                        cs.put(sectionKey, entry.getKey())
 
                     cs.put("sectionEntryIndex", index)
-                    cs.put(((String) sectionNode["@entry"]) + "_index", index)
-                    cs.put(((String) sectionNode["@entry"]) + "_has_next", listIterator.hasNext())
+                    cs.put(sectionEntry + "_index", index)
+                    cs.put(sectionEntry + "_has_next", listIterator.hasNext())
 
                     renderSingle(sri)
                 } finally {
@@ -119,7 +121,15 @@ class ScreenSection {
 
         if (conditionPassed) {
             if (actions != null) actions.run(ec)
-            if (widgets != null) widgets.render(sri)
+            if (widgets != null) {
+                // was there an error in the actions? don't try to render the widgets, likely to be more and more errors
+                if (ec.message.hasError()) {
+                    sri.writer.append(ec.message.getErrorsString())
+                } else {
+                    // render the widgets
+                    widgets.render(sri)
+                }
+            }
         } else {
             if (failWidgets != null) failWidgets.render(sri)
         }

@@ -16,7 +16,6 @@ package org.moqui.impl.context
 import groovy.transform.CompileStatic
 import org.apache.fop.apps.*
 import org.apache.fop.apps.io.ResourceResolverFactory
-import org.apache.jackrabbit.jcr2dav.Jcr2davRepositoryFactory
 import org.apache.jackrabbit.rmi.repository.URLRemoteRepository
 import org.apache.xmlgraphics.io.Resource
 import org.apache.xmlgraphics.io.ResourceResolver
@@ -134,9 +133,12 @@ public class ResourceFacadeImpl implements ResourceFacade {
         for (Node repositoryNode in ecfi.confXmlRoot."repository-list"[0]."repository") {
             try {
                 if (repositoryNode."@type" == "davex") {
-                    Jcr2davRepositoryFactory j2drf = new Jcr2davRepositoryFactory()
+                    throw new IllegalArgumentException("JCR davex not enabled by default, change code using Jcr2davRepositoryFactory in ResourceFacadeImpl and uncomment jackrabbit-jcr2dav in framework/build.gradle")
+                    /* Not enabled by default (RMI is more simple), change code here to enable:
+                    org.apache.jackrabbit.jcr2dav.Jcr2davRepositoryFactory j2drf = new org.apache.jackrabbit.jcr2dav.Jcr2davRepositoryFactory()
                     Repository repository = j2drf.getRepository(["org.apache.jackrabbit.spi2davex.uri":(String) repositoryNode."@location"])
                     contentRepositories.put((String) repositoryNode."@name", repository)
+                    */
                 } else if (repositoryNode."@type" == "rmi") {
                     Repository repository = new URLRemoteRepository((String) repositoryNode."@location")
                     contentRepositories.put((String) repositoryNode."@name", repository)
