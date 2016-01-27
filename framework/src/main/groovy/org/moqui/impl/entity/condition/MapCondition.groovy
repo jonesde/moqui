@@ -24,7 +24,7 @@ class MapCondition extends EntityConditionImplBase {
     protected EntityCondition.ComparisonOperator comparisonOperator
     protected EntityCondition.JoinOperator joinOperator
     protected Boolean ignoreCase = false
-    protected EntityConditionImplBase internalCond = null
+    protected ListCondition internalCond = null
     protected Integer curHashCode = null
     protected static final Class thisClass = MapCondition.class
 
@@ -112,10 +112,10 @@ class MapCondition extends EntityConditionImplBase {
         */
     }
 
-    EntityConditionImplBase makeCondition() {
+    ListCondition makeCondition() {
         if (internalCond != null) return internalCond
 
-        List conditionList = new LinkedList()
+        ArrayList conditionList = new ArrayList()
         for (int i = 0; i < fieldsSize; i++) {
             EntityConditionImplBase newCondition = (EntityConditionImplBase) this.ecFactoryImpl.makeCondition(names[i],
                     this.comparisonOperator, values[i])
@@ -123,7 +123,7 @@ class MapCondition extends EntityConditionImplBase {
             conditionList.add(newCondition)
         }
 
-        internalCond = (EntityConditionImplBase) this.ecFactoryImpl.makeCondition(conditionList, this.joinOperator)
+        internalCond = (ListCondition) this.ecFactoryImpl.makeCondition(conditionList, this.joinOperator)
         return internalCond
     }
 

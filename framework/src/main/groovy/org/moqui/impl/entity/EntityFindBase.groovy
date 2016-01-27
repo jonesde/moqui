@@ -17,31 +17,18 @@ import groovy.transform.CompileStatic
 import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 import org.moqui.context.ArtifactExecutionInfo
+import org.moqui.context.ExecutionContext
+import org.moqui.entity.*
+import org.moqui.impl.context.ArtifactExecutionInfoImpl
+import org.moqui.impl.context.CacheImpl
 import org.moqui.impl.context.ExecutionContextImpl
 import org.moqui.impl.context.TransactionCache
-import org.moqui.impl.entity.condition.FieldValueCondition
-import org.moqui.impl.entity.condition.MapCondition
+import org.moqui.impl.entity.condition.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.sql.ResultSet
 import java.sql.Timestamp
-
-import org.apache.commons.collections.set.ListOrderedSet
-
-import org.moqui.context.ExecutionContext
-import org.moqui.entity.EntityFind
-import org.moqui.entity.EntityDynamicView
-import org.moqui.entity.EntityCondition
-import org.moqui.entity.EntityValue
-import org.moqui.entity.EntityException
-import org.moqui.entity.EntityList
-import org.moqui.entity.EntityListIterator
-import org.moqui.impl.context.ArtifactExecutionInfoImpl
-import org.moqui.impl.context.CacheImpl
-import org.moqui.impl.entity.condition.EntityConditionImplBase
-import org.moqui.impl.entity.condition.ListCondition
-
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 @CompileStatic
 abstract class EntityFindBase implements EntityFind {
@@ -127,22 +114,32 @@ abstract class EntityFindBase implements EntityFind {
     EntityFind condition(EntityCondition condition) {
         if (condition == null) return this
 
-        if (condition instanceof FieldValueCondition) {
+        Class condClass = condition.getClass()
+        if (condClass == FieldValueCondition.class) {
             // if this is a basic field/value EQUALS condition, just add to simpleAndMap
             FieldValueCondition fvc = (FieldValueCondition) condition
             if (fvc.getOperator() == EntityCondition.EQUALS && !fvc.getIgnoreCase()) {
                 this.condition(fvc.getFieldName(), fvc.getValue())
                 return this
             }
-        } else if (condition instanceof ListCondition) {
-            // if this is an AND list condition, just unroll it and add each one; could end up as another list, but may add to simpleAndMap
+        } else if (condClass == ListCondition.class) {
             ListCondition lc = (ListCondition) condition
+            ArrayList<EntityConditionImplBase> condList = lc.getConditionList()
+            // if empty list add nothing
+            if (condList.size() == 0) return this
+            // if this is an AND list condition, just unroll it and add each one; could end up as another list, but may add to simpleAndMap
             if (lc.getOperator() == EntityCondition.AND) {
-                ArrayList<EntityConditionImplBase> condList = lc.getConditionList()
                 for (int i = 0; i < condList.size(); i++) this.condition(condList.get(i))
                 return this
             }
-        } else if (condition instanceof MapCondition) {
+        } else if (condClass == BasicJoinCondition.class) {
+            BasicJoinCondition basicCond = (BasicJoinCondition) condition
+            if (basicCond.getOperator() == EntityCondition.AND) {
+                if (basicCond.getLhs() != null) this.condition(basicCond.getLhs())
+                if (basicCond.getRhs() != null) this.condition(basicCond.getRhs())
+                return this
+            }
+        } else if (condClass == MapCondition.class) {
             MapCondition mc = (MapCondition) condition
             if (mc.getJoinOperator() == EntityCondition.AND) {
                 if (mc.getComparisonOperator() == EntityCondition.EQUALS && !mc.getIgnoreCase()) {
@@ -161,8 +158,10 @@ abstract class EntityFindBase implements EntityFind {
                     ((ListCondition) whereEntityCondition).getOperator() == EntityCondition.AND) {
                 ((ListCondition) whereEntityCondition).addCondition((EntityConditionImplBase) condition)
             } else {
-                whereEntityCondition =
-                    (EntityConditionImplBase) efi.conditionFactory.makeCondition([whereEntityCondition, condition])
+                ArrayList<EntityConditionImplBase> condList = new ArrayList()
+                condList.add(whereEntityCondition)
+                condList.add((EntityConditionImplBase) condition)
+                whereEntityCondition = new ListCondition(efi.conditionFactoryImpl, condList, EntityCondition.AND)
             }
         } else {
             whereEntityCondition = (EntityConditionImplBase) condition
@@ -184,8 +183,10 @@ abstract class EntityFindBase implements EntityFind {
             if (havingEntityCondition instanceof ListCondition) {
                 ((ListCondition) havingEntityCondition).addCondition((EntityConditionImplBase) condition)
             } else {
-                havingEntityCondition =
-                    (EntityConditionImplBase) efi.conditionFactory.makeCondition([havingEntityCondition, condition])
+                ArrayList<EntityConditionImplBase> condList = new ArrayList()
+                condList.add(havingEntityCondition)
+                condList.add((EntityConditionImplBase) condition)
+                havingEntityCondition = new ListCondition(efi.conditionFactoryImpl, condList, EntityCondition.AND)
             }
         } else {
             havingEntityCondition = (EntityConditionImplBase) condition
@@ -196,9 +197,60 @@ abstract class EntityFindBase implements EntityFind {
     @Override
     EntityCondition getWhereEntityCondition() {
         if (this.simpleAndMap) {
-            EntityCondition simpleAndMapCond = this.efi.conditionFactory.makeCondition(this.simpleAndMap)
-            if (this.whereEntityCondition) {
-                return this.efi.conditionFactory.makeCondition(simpleAndMapCond, EntityCondition.JoinOperator.AND, this.whereEntityCondition)
+            EntityConditionImplBase simpleAndMapCond = this.efi.conditionFactoryImpl
+                    .makeCondition(this.simpleAndMap, EntityCondition.EQUALS, EntityCondition.AND, null, null, false)
+
+            if (this.whereEntityCondition != null) {
+                ListCondition listCondition
+                Class simpleAndCondClass = simpleAndMapCond.getClass()
+                if (simpleAndCondClass == FieldValueCondition.class) {
+                    ArrayList<EntityConditionImplBase> oneCondList = new ArrayList()
+                    oneCondList.add(simpleAndMapCond)
+                    listCondition = new ListCondition(efi.conditionFactoryImpl, oneCondList, EntityCondition.AND)
+                } else if (simpleAndCondClass == ListCondition.class) {
+                    listCondition = (ListCondition) simpleAndMapCond
+                } else {
+                    // this should never happen, based on impl of makeCondition(Map) should always be FieldValue or List
+                    throw new EntityException("Condition for simpleAndMap is not a FieldValueCondition or ListCondition, is ${simpleAndCondClass.getName()}")
+                }
+
+                Class whereEntCondClass = this.whereEntityCondition.getClass()
+                if (whereEntCondClass == ListCondition.class) {
+                    ListCondition listCond = (ListCondition) this.whereEntityCondition
+                    if (listCond.getOperator() == EntityCondition.AND) {
+                        listCondition.addConditions(listCond)
+                        return listCondition
+                    } else {
+                        listCondition.addCondition(listCond)
+                        return listCondition
+                    }
+                } else if (whereEntCondClass == MapCondition.class) {
+                    MapCondition mapCond = (MapCondition) this.whereEntityCondition
+                    if (mapCond.getJoinOperator() == EntityCondition.AND) {
+                        listCondition.addConditions(mapCond.makeCondition())
+                        return listCondition
+                    } else {
+                        listCondition.addCondition(mapCond)
+                        return listCondition
+                    }
+                } else if (whereEntCondClass == FieldValueCondition.class || whereEntCondClass == DateCondition.class ||
+                        whereEntCondClass == FieldToFieldCondition.class) {
+                    listCondition.addCondition(this.whereEntityCondition)
+                    return listCondition
+                } else if (whereEntCondClass == BasicJoinCondition.class) {
+                    BasicJoinCondition basicCond = (BasicJoinCondition) this.whereEntityCondition
+                    if (basicCond.getOperator() == EntityCondition.AND) {
+                        listCondition.addCondition(basicCond.getLhs())
+                        listCondition.addCondition(basicCond.getRhs())
+                        return listCondition
+                    } else {
+                        listCondition.addCondition(basicCond)
+                        return listCondition
+                    }
+                } else {
+                    listCondition.addCondition(this.whereEntityCondition)
+                    return listCondition
+                }
             } else {
                 return simpleAndMapCond
             }
@@ -542,13 +594,11 @@ abstract class EntityFindBase implements EntityFind {
         boolean enableAuthz = disableAuthz ? !efi.getEcfi().getExecutionContext().getArtifactExecution().disableAuthz() : false
         try {
             EntityDefinition ed = this.getEntityDef()
-            Node entityNode = ed.getEntityNode()
             ExecutionContextImpl ec = efi.getEcfi().getEci()
 
-            String authorizeSkip = (String) entityNode.attribute('authorize-skip')
             ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW")
                     .setActionDetail("one").setParameters(simpleAndMap)
-            ec.getArtifactExecution().push(aei, (authorizeSkip != "true" && !authorizeSkip?.contains("view")))
+            ec.getArtifactExecution().push(aei, !ed.authorizeSkipView())
 
             try {
                 return oneInternal(ec)
@@ -671,12 +721,10 @@ abstract class EntityFindBase implements EntityFind {
         boolean enableAuthz = disableAuthz ? !efi.getEcfi().getExecutionContext().getArtifactExecution().disableAuthz() : false
         try {
             EntityDefinition ed = this.getEntityDef()
-            Node entityNode = ed.getEntityNode()
             ExecutionContextImpl ec = efi.getEcfi().getEci()
 
-            String authorizeSkip = (String) entityNode.attribute('authorize-skip')
             ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW").setActionDetail("one")
-            ec.getArtifactExecution().push(aei, (authorizeSkip != "true" && !authorizeSkip?.contains("view")))
+            ec.getArtifactExecution().push(aei, !ed.authorizeSkipView())
 
             try {
                 EntityValue ev = oneInternal(ec)
@@ -695,12 +743,10 @@ abstract class EntityFindBase implements EntityFind {
         boolean enableAuthz = disableAuthz ? !efi.getEcfi().getExecutionContext().getArtifactExecution().disableAuthz() : false
         try {
             EntityDefinition ed = this.getEntityDef()
-            Node entityNode = ed.getEntityNode()
             ExecutionContextImpl ec = efi.getEcfi().getEci()
 
-            String authorizeSkip = (String) entityNode.attribute('authorize-skip')
             ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW").setActionDetail("list")
-            ec.getArtifactExecution().push(aei, (authorizeSkip != "true" && !authorizeSkip?.contains("view")))
+            ec.getArtifactExecution().push(aei, !ed.authorizeSkipView())
             try {
                 return listInternal(ec)
             } finally {
@@ -769,20 +815,13 @@ abstract class EntityFindBase implements EntityFind {
             // TODO: this will not handle query conditions on UserFields, it will blow up in fact
 
             EntityConditionImplBase viewWhere = ed.makeViewWhereCondition()
-            if (whereCondition && viewWhere) {
-                whereCondition =
-                    (EntityConditionImplBase) efi.getConditionFactory().makeCondition(whereCondition, EntityCondition.JoinOperator.AND, viewWhere)
-            } else if (viewWhere) {
-                whereCondition = viewWhere
-            }
+            whereCondition = (EntityConditionImplBase) efi.getConditionFactory()
+                    .makeCondition(whereCondition, EntityCondition.AND, viewWhere)
+
             EntityConditionImplBase havingCondition = (EntityConditionImplBase) getHavingEntityCondition()
             EntityConditionImplBase viewHaving = ed.makeViewHavingCondition()
-            if (havingCondition && viewHaving) {
-                havingCondition =
-                    (EntityConditionImplBase) efi.getConditionFactory().makeCondition(havingCondition, EntityCondition.JoinOperator.AND, viewHaving)
-            } else if (viewHaving) {
-                havingCondition = viewHaving
-            }
+            havingCondition = (EntityConditionImplBase) efi.getConditionFactory()
+                    .makeCondition(havingCondition, EntityCondition.AND, viewHaving)
 
             // call the abstract method
             EntityListIterator eli = this.iteratorExtended(whereCondition, havingCondition, orderByExpanded)
@@ -818,12 +857,10 @@ abstract class EntityFindBase implements EntityFind {
         boolean enableAuthz = disableAuthz ? !efi.getEcfi().getExecutionContext().getArtifactExecution().disableAuthz() : false
         try {
             EntityDefinition ed = this.getEntityDef()
-            Node entityNode = ed.getEntityNode()
             ExecutionContextImpl ec = efi.getEcfi().getEci()
 
-            String authorizeSkip = (String) entityNode.attribute('authorize-skip')
             ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW").setActionDetail("list")
-            ec.getArtifactExecution().push(aei, (authorizeSkip != "true" && !authorizeSkip?.contains("view")))
+            ec.getArtifactExecution().push(aei, !ed.authorizeSkipView())
             try {
                 EntityList el = listInternal(ec)
                 return el.getMasterValueList(name)
@@ -855,9 +892,8 @@ abstract class EntityFindBase implements EntityFind {
         if (ed.isViewEntity() && (!entityNode.get("member-entity") || !entityNode.get("alias")))
             throw new EntityException("Cannot do find for view-entity with name [${entityName}] because it has no member entities or no aliased fields.")
 
-        String authorizeSkip = (String) entityNode.attribute('authorize-skip')
         ArtifactExecutionInfo aei = new ArtifactExecutionInfoImpl(ed.getFullEntityName(), "AT_ENTITY", "AUTHZA_VIEW").setActionDetail("iterator")
-        ec.getArtifactExecution().push(aei, (authorizeSkip != "true" && !authorizeSkip?.contains("view")))
+        ec.getArtifactExecution().push(aei, !ed.authorizeSkipView())
 
         // there may not be a simpleAndMap, but that's all we have that can be treated directly by the EECA
         // find EECA rules deprecated, not worth performance hit: efi.runEecaRules(ed.getFullEntityName(), simpleAndMap, "find-iterator", true)
@@ -891,20 +927,13 @@ abstract class EntityFindBase implements EntityFind {
 
         EntityConditionImplBase whereCondition = (EntityConditionImplBase) getWhereEntityCondition()
         EntityConditionImplBase viewWhere = ed.makeViewWhereCondition()
-        if (whereCondition && viewWhere) {
-            whereCondition = (EntityConditionImplBase) efi.getConditionFactory().makeCondition(whereCondition,
-                    EntityCondition.JoinOperator.AND, viewWhere)
-        } else if (viewWhere) {
-            whereCondition = viewWhere
-        }
+        whereCondition = (EntityConditionImplBase) efi.getConditionFactory()
+                .makeCondition(whereCondition, EntityCondition.AND, viewWhere)
+
         EntityConditionImplBase havingCondition = (EntityConditionImplBase) getHavingEntityCondition()
         EntityConditionImplBase viewHaving = ed.makeViewHavingCondition()
-        if (havingCondition && viewHaving) {
-            havingCondition = (EntityConditionImplBase) efi.getConditionFactory().makeCondition(havingCondition,
-                        EntityCondition.JoinOperator.AND, viewHaving)
-        } else if (viewHaving) {
-            havingCondition = viewHaving
-        }
+        havingCondition = (EntityConditionImplBase) efi.getConditionFactory()
+                .makeCondition(havingCondition, EntityCondition.AND, viewHaving)
 
         // call the abstract method
         EntityListIterator eli = iteratorExtended(whereCondition, havingCondition, orderByExpanded)
@@ -980,21 +1009,13 @@ abstract class EntityFindBase implements EntityFind {
             if (ed.isViewEntity() && entityConditionNode?.attribute('distinct') == "true") this.distinct(true)
 
             EntityConditionImplBase viewWhere = ed.makeViewWhereCondition()
-            if (whereCondition && viewWhere) {
-                whereCondition =
-                    (EntityConditionImplBase) efi.getConditionFactory().makeCondition(whereCondition, EntityCondition.JoinOperator.AND, viewWhere)
-            } else if (viewWhere) {
-                whereCondition = viewWhere
-            }
+            whereCondition = (EntityConditionImplBase) efi.getConditionFactory()
+                    .makeCondition(whereCondition, EntityCondition.AND, viewWhere)
 
             EntityConditionImplBase havingCondition = (EntityConditionImplBase) getHavingEntityCondition()
             EntityConditionImplBase viewHaving = ed.makeViewHavingCondition()
-            if (havingCondition && viewHaving) {
-                havingCondition =
-                    (EntityConditionImplBase) efi.getConditionFactory().makeCondition(havingCondition, EntityCondition.JoinOperator.AND, viewHaving)
-            } else if (viewHaving) {
-                havingCondition = viewHaving
-            }
+            havingCondition = (EntityConditionImplBase) efi.getConditionFactory()
+                    .makeCondition(havingCondition, EntityCondition.AND, viewHaving)
 
             // call the abstract method
             count = countExtended(whereCondition, havingCondition)

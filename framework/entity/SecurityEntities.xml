@@ -19,7 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <!-- ========================================================= -->
 
     <!-- ========== Artifact Group ========== -->
-    <entity entity-name="ArtifactGroup" package-name="moqui.security">
+    <entity entity-name="ArtifactGroup" package-name="moqui.security" short-alias="artifactGroups">
         <field name="artifactGroupId" type="id" is-pk="true"/>
         <field name="description" type="text-medium"/>
         <relationship type="many" related-entity-name="moqui.security.ArtifactGroupMember" short-alias="artifacts">
@@ -184,7 +184,6 @@ along with this software (see the LICENSE.md file). If not, see
     <entity entity-name="EntityFilterSet" package-name="moqui.security">
         <field name="entityFilterSetId" type="id" is-pk="true"/>
         <field name="description" type="text-medium"/>
-
         <relationship type="many" related-entity-name="moqui.security.EntityFilter" short-alias="filters">
             <key-map field-name="entityFilterSetId"/></relationship>
     </entity>
@@ -209,6 +208,13 @@ along with this software (see the LICENSE.md file). If not, see
         <relationship type="one" title="ComparisonOperator" related-entity-name="moqui.basic.Enumeration" short-alias="comparison">
             <key-map field-name="comparisonEnumId"/></relationship>
     </entity>
+    <view-entity entity-name="ArtifactAuthzFilterAndSet" package-name="moqui.security">
+        <member-entity entity-alias="AAF" entity-name="moqui.security.ArtifactAuthzFilter"/>
+        <member-entity entity-alias="EFS" entity-name="moqui.security.EntityFilterSet" join-from-alias="AAF">
+            <key-map field-name="entityFilterSetId"/></member-entity>
+        <alias-all entity-alias="AAF"/>
+        <alias-all entity-alias="EFS"/>
+    </view-entity>
 
     <!-- ========== Artifact Tarpit ========== -->
     <entity entity-name="ArtifactTarpit" package-name="moqui.security">

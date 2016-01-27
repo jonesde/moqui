@@ -1090,6 +1090,8 @@ class EntityFacadeImpl implements EntityFacade {
     @Override
     @CompileStatic
     EntityConditionFactory getConditionFactory() { return this.entityConditionFactory }
+    @CompileStatic
+    EntityConditionFactoryImpl getConditionFactoryImpl() { return this.entityConditionFactory }
 
     @Override
     @CompileStatic
@@ -1481,7 +1483,7 @@ class EntityFacadeImpl implements EntityFacade {
         DataSource ds = edf.getDataSource()
         if (ds == null) throw new EntityException("Cannot get JDBC Connection for group-name [${groupName}] because it has no DataSource")
         if (ds instanceof XADataSource) {
-            return this.ecfi.transactionFacade.enlistConnection(((XADataSource) ds).getXAConnection())
+            return this.ecfi.transactionFacade.enlistConnection(ds.getXAConnection())
         } else {
             return ds.getConnection()
         }

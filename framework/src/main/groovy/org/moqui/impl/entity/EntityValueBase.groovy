@@ -513,9 +513,11 @@ abstract class EntityValueBase implements EntityValue {
         Map<String, Object> pksValueMap = new HashMap<String, Object>()
         addThreeFieldPkValues(pksValueMap)
 
-        for (Node fieldNode in ed.getFieldNodes(true, true, true)) {
-            if (ed.getFieldAuditLog(fieldNode) == "true" || (isUpdate && ed.getFieldAuditLog(fieldNode) == "update")) {
-                String fieldName = fieldNode.attribute('name')
+        ArrayList<EntityDefinition.FieldInfo> fieldInfoList = ed.getAllFieldInfoList()
+        for (int i = 0; i < fieldInfoList.size(); i++) {
+            EntityDefinition.FieldInfo fieldInfo = fieldInfoList.get(i)
+            if (fieldInfo.enableAuditLog == "true" || (isUpdate && fieldInfo.enableAuditLog == "update")) {
+                String fieldName = fieldInfo.name
 
                 // is there a new value? if not continue
                 if (!this.valueMap.containsKey(fieldName)) continue
@@ -542,7 +544,8 @@ abstract class EntityValueBase implements EntityValue {
                 // logger.warn("TOREMOVE: in handleAuditLog for [${ed.entityName}.${fieldName}] value=[${value}], oldValue=[${oldValue}], oldValues=[${oldValues}]", new Exception("AuditLog location"))
 
                 // NOTE: if this is changed to async the time zone on nowTimestamp gets messed up (user's time zone lost)
-                getEntityFacadeImpl().getEcfi().getServiceFacade().sync().name("create#moqui.entity.EntityAuditLog").parameters(parms).call()
+                getEntityFacadeImpl().getEcfi().getServiceFacade().sync().name("create#moqui.entity.EntityAuditLog")
+                        .parameters(parms).disableAuthz().call()
             }
         }
     }
@@ -551,13 +554,13 @@ abstract class EntityValueBase implements EntityValue {
         EntityDefinition ed = getEntityDefinition()
 
         // get pkPrimaryValue, pkSecondaryValue, pkRestCombinedValue (just like the AuditLog stuff)
-        List<String> pkFieldList = new ArrayList(ed.getPkFieldNames())
+        ArrayList<String> pkFieldList = new ArrayList(ed.getPkFieldNames())
         String firstPkField = pkFieldList.size() > 0 ? pkFieldList.remove(0) : null
         String secondPkField = pkFieldList.size() > 0 ? pkFieldList.remove(0) : null
         StringBuffer pkTextSb = new StringBuffer()
-        boolean firstField = true
-        for (String fieldName in pkFieldList) {
-            if (firstField) firstField = false else pkTextSb.append(",")
+        for (int i = 0; i < pkFieldList.size(); i++) {
+            String fieldName = pkFieldList.get(i)
+            if (i > 0) pkTextSb.append(",")
             pkTextSb.append(fieldName).append(":'").append(ed.getFieldStringForFile(fieldName, get(fieldName))).append("'")
         }
         String pkText = pkTextSb.toString()
@@ -843,7 +846,7 @@ abstract class EntityValueBase implements EntityValue {
         return internalMasterValueMap(masterDefinition.detailList, null)
     }
 
-    protected Map<String, Object> internalMasterValueMap(List<EntityDefinition.MasterDetail> detailList, Set<String> parentPkFields) {
+    protected Map<String, Object> internalMasterValueMap(ArrayList<EntityDefinition.MasterDetail> detailList, Set<String> parentPkFields) {
         Map<String, Object> vMap = StupidUtilities.removeNullsFromMap(new HashMap(valueMap))
         if (parentPkFields != null) for (String pkField in parentPkFields) vMap.remove(pkField)
         EntityDefinition ed = getEntityDefinition()
@@ -854,7 +857,10 @@ abstract class EntityValueBase implements EntityValue {
             // keep track of all parent PK field names, even not part of this entity's PK, they will be inherited when read
             if (parentPkFields != null) curPkFields.addAll(parentPkFields)
 
-            for (EntityDefinition.MasterDetail detail in detailList) {
+            int detailListSize = detailList.size()
+            for (int i = 0; i < detailListSize; i++) {
+                EntityDefinition.MasterDetail detail = detailList.get(i)
+
                 RelationshipInfo relInfo = detail.relInfo
                 String relationshipName = relInfo.relationshipName
                 String entryName = relInfo.shortAlias ?: relationshipName
@@ -866,7 +872,9 @@ abstract class EntityValueBase implements EntityValue {
                     EntityList relList = findRelated(relationshipName, null, null, null, false)
                     if (relList) {
                         List plainRelList = []
-                        for (EntityValue relEv in relList) {
+                        int relListSize = relList.size()
+                        for (int rlIndex = 0; rlIndex < relListSize; rlIndex++) {
+                            EntityValue relEv = relList.get(rlIndex)
                             plainRelList.add(((EntityValueBase) relEv).internalMasterValueMap(detail.detailList, curPkFields))
                         }
                         vMap.put(entryName, plainRelList)

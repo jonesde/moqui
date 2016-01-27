@@ -14,26 +14,17 @@
 package org.moqui.impl.entity
 
 import groovy.transform.CompileStatic
-
-import java.sql.Timestamp
-
-import org.moqui.entity.EntityConditionFactory
 import org.moqui.entity.EntityCondition
-import org.moqui.entity.EntityCondition.JoinOperator
 import org.moqui.entity.EntityCondition.ComparisonOperator
-import org.moqui.impl.entity.condition.EntityConditionImplBase
-import org.moqui.impl.entity.condition.BasicJoinCondition
-import org.moqui.impl.entity.condition.FieldValueCondition
-import org.moqui.impl.entity.condition.ConditionField
-import org.moqui.impl.entity.condition.DateCondition
-import org.moqui.impl.entity.condition.WhereCondition
-import org.moqui.impl.entity.condition.FieldToFieldCondition
-import org.moqui.impl.entity.condition.ListCondition
-import org.moqui.impl.entity.condition.MapCondition
+import org.moqui.entity.EntityCondition.JoinOperator
+import org.moqui.entity.EntityConditionFactory
+import org.moqui.entity.EntityException
 import org.moqui.impl.StupidUtilities
-
+import org.moqui.impl.entity.condition.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import java.sql.Timestamp
 
 @CompileStatic
 class EntityConditionFactoryImpl implements EntityConditionFactory {
@@ -47,7 +38,39 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
 
     @Override
     EntityCondition makeCondition(EntityCondition lhs, JoinOperator operator, EntityCondition rhs) {
-        return new BasicJoinCondition(this, (EntityConditionImplBase) lhs, operator, (EntityConditionImplBase) rhs)
+        if (lhs != null) {
+            if (rhs != null) {
+                // we have both lhs and rhs
+                if (lhs instanceof ListCondition) {
+                    ListCondition lhsLc = (ListCondition) lhs
+                    if (lhsLc.getOperator() == operator) {
+                        if (rhs instanceof ListCondition) {
+                            ListCondition rhsLc = (ListCondition) rhs
+                            if (rhsLc.getOperator() == operator) {
+                                lhsLc.addConditions(rhsLc)
+                                return lhsLc
+                            } else {
+                                lhsLc.addCondition(rhsLc)
+                                return lhsLc
+                            }
+                        } else {
+                            lhsLc.addCondition((EntityConditionImplBase) rhs)
+                            return lhsLc
+                        }
+                    }
+                }
+                // no special handling, create a BasicJoinCondition
+                return new BasicJoinCondition(this, (EntityConditionImplBase) lhs, operator, (EntityConditionImplBase) rhs)
+            } else {
+                return lhs
+            }
+        } else {
+            if (rhs != null) {
+                return rhs
+            } else {
+                return null
+            }
+        }
     }
 
     @Override
@@ -67,14 +90,27 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
     @Override
     EntityCondition makeCondition(List<EntityCondition> conditionList, JoinOperator operator) {
         if (!conditionList) return null
-        List<EntityConditionImplBase> newList = []
-        Iterator<EntityCondition> conditionIter = conditionList.iterator()
-        while (conditionIter.hasNext()) {
-            EntityCondition curCond = conditionIter.next()
-            if (curCond == null) continue
-            // this is all they could be, all that is supported right now
-            if (curCond instanceof EntityConditionImplBase) newList.add((EntityConditionImplBase) curCond)
-            else throw new IllegalArgumentException("EntityCondition of type [${curCond.getClass().getName()}] not supported")
+        ArrayList<EntityConditionImplBase> newList = new ArrayList()
+
+        if (conditionList instanceof RandomAccess) {
+            // avoid creating an iterator if possible
+            int listSize = conditionList.size()
+            for (int i = 0; i < listSize; i++) {
+                EntityCondition curCond = conditionList.get(i)
+                if (curCond == null) continue
+                // this is all they could be, all that is supported right now
+                if (curCond instanceof EntityConditionImplBase) newList.add((EntityConditionImplBase) curCond)
+                else throw new IllegalArgumentException("EntityCondition of type [${curCond.getClass().getName()}] not supported")
+            }
+        } else {
+            Iterator<EntityCondition> conditionIter = conditionList.iterator()
+            while (conditionIter.hasNext()) {
+                EntityCondition curCond = conditionIter.next()
+                if (curCond == null) continue
+                // this is all they could be, all that is supported right now
+                if (curCond instanceof EntityConditionImplBase) newList.add((EntityConditionImplBase) curCond)
+                else throw new IllegalArgumentException("EntityCondition of type [${curCond.getClass().getName()}] not supported")
+            }
         }
         if (!newList) return null
         if (newList.size() == 1) {
@@ -92,7 +128,7 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
         ComparisonOperator mapComparison = mapComparisonOperator ? getComparisonOperator(mapComparisonOperator) : ComparisonOperator.EQUALS
         JoinOperator mapJoin = mapJoinOperator ? getJoinOperator(mapJoinOperator) : JoinOperator.AND
 
-        List<EntityConditionImplBase> newList = []
+        List<EntityConditionImplBase> newList = new ArrayList<EntityConditionImplBase>()
         Iterator<Object> conditionIter = conditionList.iterator()
         while (conditionIter.hasNext()) {
             Object curObj = conditionIter.next()
@@ -102,14 +138,16 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
                 if (curMap.size() == 0) continue
                 EntityCondition curCond = makeCondition(curMap, mapComparison, mapJoin)
                 newList.add((EntityConditionImplBase) curCond)
-            } else if (curObj instanceof EntityConditionImplBase) {
+                continue
+            }
+            if (curObj instanceof EntityConditionImplBase) {
                 EntityCondition curCond = (EntityConditionImplBase) curObj
                 newList.add(curCond)
-            } else {
-                throw new IllegalArgumentException("The conditionList parameter must contain only Map and EntityCondition objects, found entry of type [${curObj.getClass().getName()}]")
+                continue
             }
+            throw new IllegalArgumentException("The conditionList parameter must contain only Map and EntityCondition objects, found entry of type [${curObj.getClass().getName()}]")
         }
-        if (!newList) return null
+        if (newList.size() == 0) return null
         if (newList.size() == 1) {
             return newList.get(0)
         } else {
@@ -117,16 +155,103 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
         }
     }
 
+    @CompileStatic
+    static class KeyValue {
+        String key
+        Object value
+        KeyValue(String key, Object value) { this.key = key; this.value = value }
+    }
     @Override
     EntityCondition makeCondition(Map<String, Object> fieldMap, ComparisonOperator comparisonOperator, JoinOperator joinOperator) {
-        if (!fieldMap) return null
-        return new MapCondition(this, fieldMap, comparisonOperator, joinOperator)
+        return makeCondition(fieldMap, comparisonOperator, joinOperator, null, null, false)
     }
+    EntityConditionImplBase makeCondition(Map<String, Object> fieldMap, ComparisonOperator comparisonOperator,
+            JoinOperator joinOperator, EntityDefinition findEd, Map<String, ArrayList<Node>> memberFieldAliases, boolean excludeNulls) {
+        if (!fieldMap) return null
 
+        JoinOperator joinOp = joinOperator != null ? joinOperator : JoinOperator.AND
+        ComparisonOperator compOp = comparisonOperator != null ? comparisonOperator : ComparisonOperator.EQUALS
+        ArrayList<EntityConditionImplBase> condList = null
+        ArrayList<KeyValue> fieldList = new ArrayList()
+
+        for (Map.Entry<String, Object> entry in fieldMap.entrySet()) {
+            String key = entry.getKey()
+            Object value = entry.getValue()
+            if (key.startsWith("_")) {
+                if (key == "_comp") {
+                    compOp = getComparisonOperator((String) value)
+                    continue
+                } else if (key == "_join") {
+                    joinOp = getJoinOperator((String) value)
+                    continue
+                } else if (key == "_list") {
+                    // if there is an _list treat each as a condition Map, ie call back into this method
+                    if (value instanceof List) {
+                        List valueList = (List) value
+                        if (condList == null) condList = new ArrayList<EntityConditionImplBase>()
+                        for (Object listEntry in valueList) {
+                            if (listEntry instanceof Map) {
+                                EntityConditionImplBase entryCond = makeCondition((Map) listEntry, ComparisonOperator.EQUALS,
+                                        JoinOperator.AND, findEd, memberFieldAliases, excludeNulls)
+                                if (entryCond != null) condList.add(entryCond)
+                            } else {
+                                throw new EntityException("Entry in _list is not a Map: ${listEntry}")
+                            }
+                        }
+                    } else {
+                        throw new EntityException("Value for _list entry is not a List: ${value}")
+                    }
+                    continue
+                }
+            }
+
+            if (excludeNulls && value == null) {
+                if (logger.isTraceEnabled()) logger.trace("Tried to filter find on entity [${findEd.fullEntityName}] on field ${key} but value was null, not adding condition")
+                continue
+            }
+
+            // add field key/value to a list to iterate over later for conditions once we have _comp for sure
+            fieldList.add(new KeyValue(key, value))
+        }
+
+        // has fields? make conditions for them
+        if (fieldList.size() > 0) {
+            if (condList == null) condList = new ArrayList<EntityConditionImplBase>()
+            int fieldListSize = fieldList.size()
+            for (int i = 0; i < fieldListSize; i++) {
+                KeyValue fieldValue = fieldList.get(i)
+                String fieldName = fieldValue.key
+                Object value = fieldValue.value
+
+                if (memberFieldAliases) {
+                    // we have a view entity, more complex
+                    ArrayList<Node> aliases = memberFieldAliases.get(fieldName)
+                    if (!aliases) throw new EntityException("Tried to filter on field ${fieldName} which is not included in view-entity ${findEd.fullEntityName}")
+
+                    for (int k = 0; k < aliases.size(); k++) {
+                        Node aliasNode = aliases.get(k)
+                        // could be same as field name, but not if aliased with different name
+                        String aliasName = aliasNode.attribute("name")
+                        condList.add(new FieldValueCondition(this, new ConditionField(aliasName), compOp, value))
+                    }
+                } else {
+                    condList.add(new FieldValueCondition(this, new ConditionField(fieldName), compOp, value))
+                }
+
+            }
+        }
+
+        if (!condList) return null
+
+        if (condList.size() == 1) {
+            return condList[0]
+        } else {
+            return new ListCondition(this, condList, joinOp)
+        }
+    }
     @Override
     EntityCondition makeCondition(Map<String, Object> fieldMap) {
-        if (!fieldMap) return null
-        return new MapCondition(this, fieldMap, ComparisonOperator.EQUALS, JoinOperator.AND)
+        return makeCondition(fieldMap, ComparisonOperator.EQUALS, JoinOperator.AND, null, null, false)
     }
 
     @Override
@@ -298,6 +423,7 @@ class EntityConditionFactoryImpl implements EntityConditionFactory {
         return comparisonOperatorStringMap.get(op)
     }
     static ComparisonOperator getComparisonOperator(String opName) {
+        if (!opName) return ComparisonOperator.EQUALS
         return stringComparisonOperatorMap.get(opName)
     }
 

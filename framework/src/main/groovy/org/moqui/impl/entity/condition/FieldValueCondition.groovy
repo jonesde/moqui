@@ -37,8 +37,13 @@ class FieldValueCondition extends EntityConditionImplBase {
             ConditionField field, EntityCondition.ComparisonOperator operator, Object value) {
         super(ecFactoryImpl)
         this.field = field
-        this.operator = operator ?: EQUALS
         this.value = value
+
+        // default to EQUALS
+        EntityCondition.ComparisonOperator tempOp = operator != null ? operator : EQUALS
+        // if EQUALS and we have a Collection value the IN operator is implied, similar with NOT_EQUAL
+        if ((tempOp == EQUALS || tempOp == NOT_EQUAL) && value instanceof Collection) tempOp = tempOp == EQUALS ? IN : NOT_IN
+        this.operator = tempOp
     }
 
     EntityCondition.ComparisonOperator getOperator() { return operator }

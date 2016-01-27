@@ -699,11 +699,13 @@ along with this software (see the LICENSE.md file). If not, see
                 Required when under component-list (in Moqui Conf XML file or a components.xml file), optional
                 when component element is in a component.xml file within a component.
             </xs:documentation></xs:annotation></xs:attribute>
+            <xs:attribute name="version" type="xs:string" use="optional"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="depends-on">
         <xs:complexType>
             <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="version" type="xs:string" use="optional"/>
         </xs:complexType>
     </xs:element>
 </xs:schema>

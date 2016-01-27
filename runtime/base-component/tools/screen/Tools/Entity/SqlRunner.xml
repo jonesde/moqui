@@ -66,6 +66,14 @@ along with this software (see the LICENSE.md file). If not, see
                     }
                 } catch (Exception e) {
                     ec.message.addError(e.toString())
+                } finally {
+                    if (con != null) {
+                        try {
+                            con.close()
+                        } catch (java.sql.SQLException e) {
+                            // Ignore
+                        }
+                    }
                 }
             }
         ]]></script>

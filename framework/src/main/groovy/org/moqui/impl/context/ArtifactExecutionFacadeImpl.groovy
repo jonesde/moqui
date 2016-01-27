@@ -268,14 +268,17 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
                 boolean recordHitTime = false
                 long lockForSeconds = 0
                 long checkTime = System.currentTimeMillis()
-                List<EntityValue> artifactTarpitCheckList = null
+                ArrayList<EntityValue> artifactTarpitCheckList = null
                 // only check screens if they are the final screen in the chain (the target screen)
                 if (aeii.getTypeEnumId() != 'AT_XML_SCREEN' || requiresAuthz) {
                     EntityList fullList = ufi.getArtifactTarpitCheckList()
                     if (fullList) {
-                        artifactTarpitCheckList = new LinkedList()
-                        for (EntityValue atEv in fullList) if (atEv.get('artifactTypeEnumId') == aeii.getTypeEnumId())
-                            artifactTarpitCheckList.add(atEv)
+                        artifactTarpitCheckList = new ArrayList()
+                        for (int i = 0; i < fullList.size(); i++) {
+                            EntityValue atEv = fullList.get(i)
+                            if (atEv.get('artifactTypeEnumId') == aeii.getTypeEnumId())
+                                artifactTarpitCheckList.add(atEv)
+                        }
                     }
                 }
                 // if (aeii.getTypeEnumId() == "AT_XML_SCREEN")
@@ -283,7 +286,8 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
                 if (artifactTarpitCheckList) {
                     String tarpitKey = userId + '@' + aeii.getTypeEnumId() + ':' + aeii.getName()
                     List<Long> hitTimeList = null
-                    for (EntityValue artifactTarpit in artifactTarpitCheckList) {
+                    for (int i = 0; i < artifactTarpitCheckList.size(); i++) {
+                        EntityValue artifactTarpit = artifactTarpitCheckList.get(i)
                         if (('Y'.equals(artifactTarpit.get('nameIsPattern')) &&
                                 aeii.getName().matches((String) artifactTarpit.get('artifactName'))) ||
                                 aeii.getName().equals(artifactTarpit.get('artifactName'))) {
@@ -294,9 +298,12 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
                             long hitsInDuration = 1
                             if (hitTimeList) {
                                 // copy the list to avoid a ConcurrentModificationException
-                                // TODO: a better approach to concurrency that won't ever miss hits would be better
-                                List<Long> hitTimeListCopy = new ArrayList(hitTimeList)
-                                for (Long hitTime in hitTimeListCopy) if ((hitTime - checkTime) < maxHitsDuration) hitsInDuration++
+                                // NOTE: a better approach to concurrency that won't ever miss hits would be better
+                                ArrayList<Long> hitTimeListCopy = new ArrayList(hitTimeList)
+                                for (int htlInd = 0; htlInd < hitTimeListCopy.size(); htlInd++) {
+                                    Long hitTime = hitTimeListCopy.get(htlInd)
+                                    if ((hitTime - checkTime) < maxHitsDuration) hitsInDuration++
+                                }
                             }
                             // logger.warn("TOREMOVE artifact [${tarpitKey}], now has ${hitsInDuration} hits in ${maxHitsDuration} seconds")
                             if (hitsInDuration > artifactTarpit.getLong('maxHitsCount') && artifactTarpit.getLong('tarpitDuration') > lockForSeconds) {
@@ -326,7 +333,7 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
                     if (lockForSeconds > 0) {
                         eci.getService().sync().name('create', 'moqui.security.ArtifactTarpitLock').parameters(
                                 [userId:userId, artifactName:aeii.getName(), artifactTypeEnumId:aeii.getTypeEnumId(),
-                                releaseDateTime:(new Timestamp(checkTime + ((lockForSeconds as BigDecimal) * 1000).intValue()))]).call()
+                                 releaseDateTime:(new Timestamp(checkTime + ((lockForSeconds as BigDecimal) * 1000).intValue()))]).call()
                         tarpitHitCache.remove(tarpitKey)
                     }
                 }
@@ -359,9 +366,11 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
         try {
             // don't make a big condition for the DB to filter the list, or EntityList.filterByCondition from bigger
             //     cached list, both are slower than manual iterate and check fields explicitly
-            List<EntityValue> aacvList = []
+            ArrayList<EntityValue> aacvList = new ArrayList()
             EntityList origAacvList = ufi.getArtifactAuthzCheckList()
-            for (EntityValue aacv in origAacvList) {
+            int origAacvListSize = origAacvList.size()
+            for (int i = 0; i < origAacvListSize; i++) {
+                EntityValue aacv = origAacvList.get(i)
                 Map aacvMap = ((EntityValueBase) aacv).getValueMap()
                 String curAuthzActionEnumId = aacvMap.get('authzActionEnumId')
                 if (aacvMap.get('artifactTypeEnumId') == aeii.getTypeEnumId() &&
@@ -374,7 +383,10 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
             // if ("AT_XML_SCREEN" == aeii.typeEnumId && aeii.getName().contains("FOO"))
             //     logger.warn("TOREMOVE for aeii [${aeii}] artifact isPermitted aacvList: ${aacvList}; aacvCond: ${aacvCond}")
 
-            if (aacvList.size() > 0) for (EntityValue aacv in aacvList) {
+            int aacvListSize = aacvList.size()
+            for (int i = 0; i < aacvListSize; i++) {
+                EntityValue aacv = aacvList.get(i)
+
                 // check the name
                 if ('Y'.equals(aacv.get('nameIsPattern')) && !aeii.getName().matches(aacv.getString('artifactName')))
                     continue
@@ -430,8 +442,8 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
                     if (aeii.getTypeEnumId() == 'AT_ENTITY') {
                         EntityDefinition mainEd = efi.getEntityDefinition(aeii.getName())
                         ArrayList<String> pkFieldNames = mainEd.getPkFieldNames()
-                        for (int i = 0; i < pkFieldNames.size(); i++) {
-                            String pkFieldName = pkFieldNames[i]
+                        for (int j = 0; j < pkFieldNames.size(); j++) {
+                            String pkFieldName = pkFieldNames[j]
                             if (!ed.isField(pkFieldName)) continue
                             Object pkParmValue = aeii.parameters.get(pkFieldName)
                             if (pkParmValue != null) ef.condition(pkFieldName, pkParmValue)
@@ -544,8 +556,8 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
                 //    because this is still in a disableAuthz block (if async a service would have to be written for that)
                 eci.service.sync().name("create", "moqui.security.ArtifactAuthzFailure").parameters(
                         [artifactName:aeii.getName(), artifactTypeEnumId:aeii.getTypeEnumId(),
-                        authzActionEnumId:aeii.getActionEnumId(), userId:userId,
-                        failureDate:new Timestamp(System.currentTimeMillis()), isDeny:"N"]).call()
+                         authzActionEnumId:aeii.getActionEnumId(), userId:userId,
+                         failureDate:new Timestamp(System.currentTimeMillis()), isDeny:"N"]).call()
             } finally {
                 if (!alreadyDisabled) enableAuthz()
             }
@@ -600,62 +612,40 @@ public class ArtifactExecutionFacadeImpl implements ArtifactExecutionFacade {
 
                     // see if there if any filter entities match the current entity or if it is a view then a member entity
                     Map<String, ArrayList<Node>> memberFieldAliases = null
-                    if (findEd.isViewEntity()) {
-                        memberFieldAliases = findEd.getMemberFieldAliases(filterEntityName)
-                        if (memberFieldAliases == null) continue
-                    } else {
-                        if (filterEntityName != findEd.fullEntityName) continue
+                    if (filterEntityName != findEd.fullEntityName) {
+                        if (findEd.isViewEntity()) {
+                            memberFieldAliases = findEd.getMemberFieldAliases(filterEntityName)
+                            if (memberFieldAliases == null) continue
+                        } else {
+                            continue
+                        }
                     }
 
                     Map<String, Object> filterMapObj = (Map<String, Object>) eci.getResource()
                             .expression(entityFilter.getString('filterMap'), null)
                     // logger.info("===== ${findEntityName} filterMapObj: ${filterMapObj}")
 
-                    JoinOperator joinOp = entityFilter.joinOr == "Y" ? EntityCondition.OR : EntityCondition.AND
                     ComparisonOperator compOp = entityFilter.comparisonEnumId ? eci.entity.conditionFactory
                             .comparisonOperatorFromEnumId((String) entityFilter.comparisonEnumId) : null
+                    JoinOperator joinOp = entityFilter.joinOr == "Y" ? EntityCondition.OR : EntityCondition.AND
 
-                    List<EntityConditionImplBase> condList = []
-                    for (Map.Entry<String, Object> entry in filterMapObj.entrySet()) {
-                        String fieldName = entry.key
-                        Object value = entry.value
-                        if (value == null) {
-                            logger.info("Tried to filter find on entity [${findEd.fullEntityName}] for entity [${filterEntityName}] on field ${fieldName} but value was null, not adding condition")
-                            continue
-                        }
-                        ComparisonOperator curCompOp = compOp
-                        if (curCompOp == null) curCompOp = value instanceof Collection ? EntityCondition.IN : EntityCondition.EQUALS
-                        if (memberFieldAliases) {
-                            // we have a view entity, more complex
-                            ArrayList<Node> aliases = memberFieldAliases.get(fieldName)
-                            if (!aliases) {
-                                throw new ArtifactAuthorizationException("There is a filter on field ${fieldName} of entity ${filterEntityName} which is not included in view-entity ${findEd.fullEntityName}")
-                            }
+                    // use makeCondition(Map) instead of breaking down here
+                    try {
+                        EntityCondition entCond = eci.ecfi.entityFacade.conditionFactoryImpl.makeCondition(filterMapObj,
+                                compOp, joinOp, findEd, memberFieldAliases, true)
+                        if (entCond == null) continue
 
-                            for (int k = 0; k < aliases.size(); k++) {
-                                Node aliasNode = aliases.get(k)
-                                // could be same as field name, but not if aliased with different name
-                                String aliasName = aliasNode.attribute("name")
-                                condList.add((EntityConditionImplBase) eci.entity.conditionFactory.makeCondition(aliasName, curCompOp, value))
-                            }
-                        } else {
-                            condList.add((EntityConditionImplBase) eci.entity.conditionFactory.makeCondition(fieldName, curCompOp, value))
-                        }
+                        // add the condition to the find
+                        // NOTE: just create a list cond and add it, EntityFindBase will put it in simpleAndMap or otherwise optimize it
+                        addedFilter = true
+                        efb.condition(entCond)
+
+                        // TODO: once more tested change this to trace
+                        logger.info("Query on ${findEntityName} added authz filter conditions: ${entCond}")
+                        // logger.info("Query on ${findEntityName} find: ${efb.toString()}")
+                    } catch (Exception e) {
+                        logger.warn("Error adding authz entity filter condition: ${e.toString()}")
                     }
-
-                    if (condList.size() == 0) continue
-
-                    // add the condition to the find
-                    // NOTE: just create a list cond and add it, EntityFindBase will put it in simpleAndMap or otherwise optimize it
-                    addedFilter = true
-                    if (condList.size() == 1) {
-                        efb.condition(condList[0])
-                    } else {
-                        efb.condition(new ListCondition((EntityConditionFactoryImpl) eci.entity.conditionFactory, condList, joinOp))
-                    }
-                    // TODO: once more tested remove this
-                    logger.info("Query on ${findEntityName} added authz filter conditions (${joinOp}): ${condList}")
-                    // logger.info("Query on ${findEntityName} find: ${efb.toString()}")
                 }
             }
         } finally {
